@@ -46,8 +46,8 @@ int main(int argc, char *argv[])
         std::string src = "../share/src.mp4";
         std::string bgr = "../share/src.png";
         cv::Size shape;
-        shape.width = 1280;
-        shape.height = 720;
+        shape.width = 480;
+        shape.height = 270;
         CnnConfig config(model, bin, src, bgr, shape);
         config.networkCfg.nCpuThreadsNum = 0;
         config.networkCfg.nCpuThroughputStreams = 1;
