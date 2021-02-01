@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
         config.networkCfg.nCpuThroughputStreams = 1;
         MattingCNN net(config);
 
-        //InitWindows();       
+        InitWindows();       
         
         cv::VideoCapture capture0(src);
 
@@ -96,11 +96,11 @@ int main(int argc, char *argv[])
                 frame_com = output["com"];
                 frame_pha = output["pha"];
                 frame_fgr = output["fgr"];
-                /*
+                
                 cv::imshow("com", frame_com);
                 cv::imshow("pha", frame_pha);
                 cv::imshow("fgr", frame_fgr);
-                */
+                
             }
             char c = cv::waitKey(nDelay);
             if (c == 'c')

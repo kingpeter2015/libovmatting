@@ -141,6 +141,9 @@ public:
     explicit MattingCNN(const CnnConfig &config);
 
     void Compute(const cv::Mat &image, cv::Mat &bgr,  std::map<std::string, cv::Mat> *result, cv::Size& outp_shape) const;
+
+private:
+    cv::Size _originShape;
 };
 
 //异步算法

@@ -103,7 +103,6 @@ void CnnDLSDKBase::Load()
     {
         _executable_network_ = _config.ie.LoadNetwork(cnnNetwork, _config.deviceName);
     }
-    
 
     _infer_request_ = _executable_network_.CreateInferRequest();
 }
@@ -118,16 +117,16 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
     try
     {
         //1.Input
-        cv::Mat iBgr, iFrame,matBgr, matFrame;
+        cv::Mat iBgr, iFrame, matBgr, matFrame;
         iBgr = bgr.clone();
         iFrame = frame.clone();
 
-        if(frame.rows != outp_shape.height || frame.cols != outp_shape.width)
+        if (frame.rows != outp_shape.height || frame.cols != outp_shape.width)
         {
             cv::resize(frame, iFrame, outp_shape);
         }
-        
-        if(bgr.rows != outp_shape.height || bgr.cols != outp_shape.width)
+
+        if (bgr.rows != outp_shape.height || bgr.cols != outp_shape.width)
         {
             cv::resize(bgr, iBgr, outp_shape);
         }
@@ -179,60 +178,49 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
         }
 
         //3.Output
-        //outPha
+
         {
             TimerCounter tCount("Phase3-Outputting");
-            Blob::Ptr outPha = _infer_request_.GetBlob("pha");
-            InferenceEngine::SizeVector dimsPha = outPha->getTensorDesc().getDims();
-            std::vector<int> phaSizes(dimsPha.size(), 0);
-            for (size_t i = 0; i < phaSizes.size(); ++i)
+
+            //blobPha
+            Blob::Ptr blobPha = _infer_request_.GetBlob("pha");
+            auto dataPha = blobPha->buffer().as<PrecisionTrait<Precision::FP32>::value_type *>();
+
+            Blob::Ptr blobFgr = _infer_request_.GetBlob("fgr");
+            auto dataFgr = blobFgr->buffer().as<PrecisionTrait<Precision::FP32>::value_type *>();
+            size_t num_channels = blobFgr->getTensorDesc().getDims()[1];
+
+            size_t num_channels_pha = blobPha->getTensorDesc().getDims()[1];
+            size_t image_width = blobPha->getTensorDesc().getDims()[3];
+            size_t image_height = blobPha->getTensorDesc().getDims()[2];
+            size_t image_size = image_width * image_height;
+
+            cv::Mat matPha = cv::Mat::zeros(_config._shape, CV_8UC1);
+            cv::Mat matFgr = cv::Mat::zeros(_config._shape, CV_8UC3);
+            cv::Mat matCom = cv::Mat::zeros(_config._shape, CV_8UC3);
+            cv::Mat matGreen(_config._shape, CV_8UC3, cv::Scalar(120, 255, 155));
+            unsigned char *dataMatPha = matPha.data;
+            unsigned char *dataMatFgr = matFgr.data;
+            unsigned char *dataMatCom = matCom.data;
+            unsigned char *dataMatGreen = matCom.data;
+            for (size_t pid = 0; pid < image_size; pid++)
             {
-                phaSizes[i] = dimsPha[i];
+                /** Iterate over all channels **/
+                float alpha = dataPha[pid];
+                dataMatPha[pid] = dataPha[pid] * 255.0;
+
+                dataMatFgr[pid * num_channels + 2] = dataFgr[0 * image_size + pid] * 255.0;
+                dataMatFgr[pid * num_channels + 1] = dataFgr[1 * image_size + pid] * 255.0;
+                dataMatFgr[pid * num_channels + 0] = dataFgr[2 * image_size + pid] * 255.0;
+
+                dataMatCom[pid * num_channels + 2] = dataFgr[pid * num_channels + 2] * alpha + dataMatGreen[pid * num_channels + 2] * (1 - alpha);
+                dataMatCom[pid * num_channels + 1] = dataFgr[pid * num_channels + 1] * alpha + dataMatGreen[pid * num_channels + 1] * (1 - alpha);
+                dataMatCom[pid * num_channels + 0] = dataFgr[pid * num_channels + 0] * alpha + dataMatGreen[pid * num_channels + 0] * (1 - alpha);
             }
-            cv::Mat matPha(phaSizes, CV_32F, outPha->buffer());
-            matPha = matPha.reshape(phaSizes[1], {outp_shape.height, outp_shape.width});
-            matPha.convertTo(matPha, CV_8U, 255.0);
 
-            cv::Mat bgr_green(outp_shape.height, outp_shape.width, CV_8UC3, cv::Scalar(120, 255, 155));
-            cv::Mat pha_sup = bgr_green.clone();
-            cv::Mat com_fgr = frame.clone();
-            cv::Mat com = cv::Mat::zeros(com_fgr.size(), com_fgr.type());
-            cv::Mat matFgr = cv::Mat::zeros(com_fgr.size(), com_fgr.type());
-
-            int channels = matFgr.channels();
-            int image_size = matFgr.rows * matFgr.cols;
-            for (int i = 0; i < image_size; i++)
-            {
-                float alpha = matPha.data[i + 0] / 255.0;
-                com.data[i * channels + 0] = com_fgr.data[i * channels + 0] * alpha + pha_sup.data[i * channels + 0] * (1.0 - alpha);
-                com.data[i * channels + 1] = com_fgr.data[i * channels + 1] * alpha + pha_sup.data[i * channels + 1] * (1.0 - alpha);
-                com.data[i * channels + 2] = com_fgr.data[i * channels + 2] * alpha + pha_sup.data[i * channels + 2] * (1.0 - alpha);
-
-                matFgr.data[i * channels + 0] = com_fgr.data[i * channels + 0] * alpha;
-                matFgr.data[i * channels + 1] = com_fgr.data[i * channels + 1] * alpha;
-                matFgr.data[i * channels + 2] = com_fgr.data[i * channels + 2] * alpha;
-            }
-            /*
-            for (int i = 0; i < matPha.rows; i++)
-            {
-                for (int j = 0; j < matPha.cols; j++)
-                {
-                    float alpha = matPha.at<uint8_t>(i, j) / 255.0;
-                    com.at<cv::Vec3b>(i, j)[0] = com_fgr.at<cv::Vec3b>(i, j)[0] * alpha + pha_sup.at<cv::Vec3b>(i, j)[0] * (1.0 - alpha);
-                    com.at<cv::Vec3b>(i, j)[1] = com_fgr.at<cv::Vec3b>(i, j)[1] * alpha + pha_sup.at<cv::Vec3b>(i, j)[1] * (1.0 - alpha);
-                    com.at<cv::Vec3b>(i, j)[2] = com_fgr.at<cv::Vec3b>(i, j)[2] * alpha + pha_sup.at<cv::Vec3b>(i, j)[2] * (1.0 - alpha);
-
-                    matFgr.at<cv::Vec3b>(i, j)[0] = com_fgr.at<cv::Vec3b>(i, j)[0] * alpha;
-                    matFgr.at<cv::Vec3b>(i, j)[1] = com_fgr.at<cv::Vec3b>(i, j)[1] * alpha;
-                    matFgr.at<cv::Vec3b>(i, j)[2] = com_fgr.at<cv::Vec3b>(i, j)[2] * alpha;
-                }
-            }
-            */
-
-            (*result)["com"] = com;
+            (*result)["com"] = matCom;
             (*result)["fgr"] = matFgr;
             (*result)["pha"] = matPha;
-            (*result)["green"] = bgr_green;
         }
     }
     catch (const std::exception &e)
