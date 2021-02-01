@@ -27,8 +27,8 @@ $cmake ..<br>
 $make<br>
 <br>
 4 Run the test program<br>
-$cd build
-$./sample<br>
+$cd out/
+$LD_LIBRARY_PATH=./:$(LD_LIBRARY_PATH) ./sample<br>
 
 ## Reference
 OpenVINO https://software.intel.com/content/www/us/en/develop/tools/openvino-toolkit.html <br>

@@ -25,7 +25,7 @@ public:
     {
         auto elapsed = std::chrono::high_resolution_clock::now() - _start;
         _elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
-        std::cout << "Benchmarking " << _name <<"\t\t| elapse miliseconds: " << _elapse << ",\t estimate fps: " << 1000.0/_elapse << std::endl;
+        std::cout << "Benchmarking " << _name <<"\t\t| elapse miliseconds: " << _elapse / 1.0 << ",\t estimate fps: " << 1000.0/_elapse << std::endl;
     }
 private:
     std::string _name;
@@ -141,6 +141,8 @@ public:
     explicit MattingCNN(const CnnConfig &config);
 
     void Compute(const cv::Mat &image, cv::Mat &bgr,  std::map<std::string, cv::Mat> *result, cv::Size& outp_shape) const;
+
+    void Compute_Alpha(const cv::Mat &image, cv::Mat &bgr,  std::map<std::string, cv::Mat> *result, cv::Size& outp_shape) const;
 
 private:
     cv::Size _originShape;

@@ -97,7 +97,7 @@ void CnnDLSDKBase::Load()
         loadParams[PluginConfigParams::KEY_CPU_THREADS_NUM] = std::to_string(_config.networkCfg.nCpuThreadsNum);
         loadParams[PluginConfigParams::KEY_CPU_BIND_THREAD] = _config.networkCfg.bCpuBindThread ? PluginConfigParams::YES : PluginConfigParams::NO;
         loadParams[PluginConfigParams::KEY_CPU_THROUGHPUT_STREAMS] = std::to_string(_config.networkCfg.nCpuThroughputStreams);
-        _executable_network_ = _config.ie.LoadNetwork(cnnNetwork, _config.deviceName, loadParams);
+        _executable_network_ = _config.ie.LoadNetwork(cnnNetwork, _config.deviceName, loadParams); 
     }
     else
     {
@@ -117,18 +117,20 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
     try
     {
         //1.Input
-        cv::Mat iBgr, iFrame, matBgr, matFrame;
+        cv::Mat iBgr, iFrame, matBgr, matFrame, matFrame1;
         iBgr = bgr.clone();
         iFrame = frame.clone();
+        matFrame1 = frame.clone();
+        unsigned char *dataMatFrame1 = matFrame1.data;
 
-        if (frame.rows != outp_shape.height || frame.cols != outp_shape.width)
+        if (frame.rows != _config._shape.height || frame.cols != _config._shape.width)
         {
-            cv::resize(frame, iFrame, outp_shape);
+            cv::resize(frame, iFrame, _config._shape);
         }
 
-        if (bgr.rows != outp_shape.height || bgr.cols != outp_shape.width)
+        if (bgr.rows != _config._shape.height || bgr.cols != _config._shape.width)
         {
-            cv::resize(bgr, iBgr, outp_shape);
+            cv::resize(bgr, iBgr, _config._shape);
         }
 
         matBgr = iBgr.clone();
@@ -197,8 +199,8 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
 
             cv::Mat matPha = cv::Mat::zeros(_config._shape, CV_8UC1);
             cv::Mat matFgr = cv::Mat::zeros(_config._shape, CV_8UC3);
-            cv::Mat matCom = cv::Mat::zeros(_config._shape, CV_8UC3);
-            cv::Mat matGreen(_config._shape, CV_8UC3, cv::Scalar(120, 255, 155));
+            cv::Mat matCom = cv::Mat::zeros(outp_shape, CV_8UC3);
+            cv::Mat matGreen(outp_shape, CV_8UC3, cv::Scalar(120, 255, 155));
             unsigned char *dataMatPha = matPha.data;
             unsigned char *dataMatFgr = matFgr.data;
             unsigned char *dataMatCom = matCom.data;
@@ -213,10 +215,89 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
                 dataMatFgr[pid * num_channels + 1] = dataFgr[1 * image_size + pid] * 255.0;
                 dataMatFgr[pid * num_channels + 0] = dataFgr[2 * image_size + pid] * 255.0;
 
-                dataMatCom[pid * num_channels + 2] = dataMatFgr[pid * num_channels + 2] * alpha + dataMatGreen[pid * num_channels + 2] * (1 - alpha);
-                dataMatCom[pid * num_channels + 1] = dataMatFgr[pid * num_channels + 1] * alpha + dataMatGreen[pid * num_channels + 1] * (1 - alpha);
-                dataMatCom[pid * num_channels + 0] = dataMatFgr[pid * num_channels + 0] * alpha + dataMatGreen[pid * num_channels + 0] * (1 - alpha);
+                
             }
+
+            cv::resize(matPha, matPha, outp_shape);
+            cv::resize(matFgr, matFgr, outp_shape);
+            dataMatPha = matPha.data;
+            dataMatFgr = matFgr.data;
+            image_size = matPha.rows * matPha.cols;
+            /*
+            cv::bitwise_and(matFrame1, matPha, matFgr);
+            cv::bitwise_and(matGreen, 255-matPha, matGreen);
+            cv::bitwise_xor(matFgr, matGreen, matCom);
+            
+            for (size_t pid = 0; pid < image_size; pid++)
+            {
+                char alpha = dataMatPha[pid * num_channels + 2] ? 255 : 0;
+                dataMatCom[pid * num_channels + 2] = (dataMatFrame1[pid * num_channels + 2] & alpha) | (dataMatGreen[pid * num_channels + 2] & (255 - alpha));
+                dataMatCom[pid * num_channels + 1] = (dataMatFrame1[pid * num_channels + 1] & alpha) | (dataMatGreen[pid * num_channels + 1] & (255 - alpha));
+                dataMatCom[pid * num_channels + 0] = (dataMatFrame1[pid * num_channels + 0] & alpha) | (dataMatGreen[pid * num_channels + 0] & (255 - alpha));
+            }
+            */
+
+           for (size_t pid = 0; pid < image_size; pid++)
+            {
+                float alpha = dataMatPha[pid] / 255.0;
+                dataMatCom[pid * num_channels + 2] = (dataMatFrame1[pid * num_channels + 2] * alpha) + (dataMatGreen[pid * num_channels + 2] * (1 - alpha));
+                dataMatCom[pid * num_channels + 1] = (dataMatFrame1[pid * num_channels + 1] * alpha) + (dataMatGreen[pid * num_channels + 1] * (1 - alpha));
+                dataMatCom[pid * num_channels + 0] = (dataMatFrame1[pid * num_channels + 0] * alpha) + (dataMatGreen[pid * num_channels + 0] * (1 - alpha));
+            }
+            
+
+            (*result)["com"] = matCom;
+            (*result)["fgr"] = matFgr;
+            (*result)["pha"] = matPha;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "MattingCNN::Compute():" << e.what() << '\n';
+    }
+}
+
+void MattingCNN::Compute_Alpha(const cv::Mat &frame, cv::Mat &bgr, std::map<std::string, cv::Mat> *result, cv::Size &outp_shape) const
+{
+    cv::Mat iBgr, iFrame, matBgr, matFrame;
+    iBgr = bgr.clone();
+    iFrame = frame.clone();
+
+    cv::Mat matPha = cv::Mat::zeros(frame.size(), CV_8UC3);
+    cv::Mat matFgr = cv::Mat::zeros(frame.size(), CV_8UC3);
+    cv::Mat matCom = cv::Mat::zeros(frame.size(), CV_8UC3);
+    cv::Mat matGreen(frame.size(), CV_8UC3, cv::Scalar(120, 255, 155));
+    unsigned char *dataMatPha = matPha.data;
+    unsigned char *dataMatFgr = matFgr.data;
+    unsigned char *dataMatCom = matCom.data;
+    unsigned char *dataMatGreen = matGreen.data;
+
+    size_t image_width = frame.size().width;
+    size_t image_height = frame.size().height;
+    size_t image_size = image_width * image_height;
+
+    try
+    {
+        
+
+        matBgr = iBgr.clone();
+        matFrame = iFrame.clone();
+
+        unsigned char *dataSrc = (matFrame.data);
+        unsigned char *dataBgr = (matBgr.data);
+
+        //Benchmarking Input
+        {
+            TimerCounter tCount("Phase1-Getting Alpha");
+            cv::bitwise_xor(frame, bgr, matPha);
+            cv::bitwise_and(frame, matPha, matFgr);
+        }
+
+        
+        //3.Output
+
+        {
+            TimerCounter tCount("Phase3-Outputting");   
 
             (*result)["com"] = matCom;
             (*result)["fgr"] = matFgr;
