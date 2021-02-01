@@ -202,7 +202,7 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
             unsigned char *dataMatPha = matPha.data;
             unsigned char *dataMatFgr = matFgr.data;
             unsigned char *dataMatCom = matCom.data;
-            unsigned char *dataMatGreen = matCom.data;
+            unsigned char *dataMatGreen = matGreen.data;
             for (size_t pid = 0; pid < image_size; pid++)
             {
                 /** Iterate over all channels **/
@@ -213,9 +213,9 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
                 dataMatFgr[pid * num_channels + 1] = dataFgr[1 * image_size + pid] * 255.0;
                 dataMatFgr[pid * num_channels + 0] = dataFgr[2 * image_size + pid] * 255.0;
 
-                dataMatCom[pid * num_channels + 2] = dataFgr[pid * num_channels + 2] * alpha + dataMatGreen[pid * num_channels + 2] * (1 - alpha);
-                dataMatCom[pid * num_channels + 1] = dataFgr[pid * num_channels + 1] * alpha + dataMatGreen[pid * num_channels + 1] * (1 - alpha);
-                dataMatCom[pid * num_channels + 0] = dataFgr[pid * num_channels + 0] * alpha + dataMatGreen[pid * num_channels + 0] * (1 - alpha);
+                dataMatCom[pid * num_channels + 2] = dataMatFgr[pid * num_channels + 2] * alpha + dataMatGreen[pid * num_channels + 2] * (1 - alpha);
+                dataMatCom[pid * num_channels + 1] = dataMatFgr[pid * num_channels + 1] * alpha + dataMatGreen[pid * num_channels + 1] * (1 - alpha);
+                dataMatCom[pid * num_channels + 0] = dataMatFgr[pid * num_channels + 0] * alpha + dataMatGreen[pid * num_channels + 0] * (1 - alpha);
             }
 
             (*result)["com"] = matCom;
