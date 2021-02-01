@@ -60,8 +60,7 @@ struct CNetWorkCPUConfig
 */
 struct CnnConfig
 {
-    explicit CnnConfig(const std::string &path_to_model, const std::string &bin, const std::string &src, const std::string &bgr)
-        : path_to_model(path_to_model), path_to_bin(bin), path_bgr(bgr), path_src(src){}
+    explicit CnnConfig(const std::string &path_to_model, const std::string &bin, const std::string &src, const std::string &bgr, const cv::Size shape=cv::Size(1920,1080)) : path_to_model(path_to_model), path_to_bin(bin), path_bgr(bgr), path_src(src), _shape(shape){}
 
     /** @brief Path to model description */
     std::string path_to_model;
@@ -81,6 +80,7 @@ struct CnnConfig
     CNetWorkCPUConfig networkCfg;
     
     bool is_async{true};
+    cv::Size _shape = cv::Size(1920, 1080);
 };
 
 /**

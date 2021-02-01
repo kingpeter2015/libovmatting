@@ -20,33 +20,41 @@ using namespace InferenceEngine;
 void TestMatting()
 {        
 }
+void InitWindows()
+{
+    int width = 640;
+    int height = 480;
+    cv::namedWindow("com", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
+    cv::resizeWindow("com", width, height);
+    cv::moveWindow("com", 0, 0);
+    cv::namedWindow("pha", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
+    cv::resizeWindow("pha", width, height);
+    cv::moveWindow("pha", 650, 0);
+    cv::namedWindow("fgr", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
+    cv::resizeWindow("fgr", width, height);
+    cv::moveWindow("com", 0, 500);
+}
 
 int main(int argc, char *argv[])
 {
     try
     {
-        std::string model = "../pytorch_mobilenetv2.xml";
-        std::string bin = "../pytorch_mobilenetv2.bin";
+        std::string model = "../share/pytorch_mobilenetv2.xml";
+        std::string bin = "../share/pytorch_mobilenetv2.bin";
         //std::string model = "../pytorch_mobilenetv2.onnx";
         //std::string bin = "";
-        std::string src = "../src.mp4";
-        std::string bgr = "../src.png";
-        CnnConfig config(model, bin, src, bgr);
+        std::string src = "../share/src.mp4";
+        std::string bgr = "../share/src.png";
+        cv::Size shape;
+        shape.width = 1280;
+        shape.height = 720;
+        CnnConfig config(model, bin, src, bgr, shape);
         config.networkCfg.nCpuThreadsNum = 0;
         config.networkCfg.nCpuThroughputStreams = 1;
         MattingCNN net(config);
 
-        int width = 640;
-        int height = 480;
-        cv::namedWindow("com", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
-        cv::resizeWindow("com", width, height);
-        cv::moveWindow("com", 0, 0);
-        cv::namedWindow("pha", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
-        cv::resizeWindow("pha", width, height);
-        cv::moveWindow("pha", 650, 0);
-        cv::namedWindow("fgr", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
-        cv::resizeWindow("fgr", width, height);
-        cv::moveWindow("com", 0, 500);
+        //InitWindows();       
+        
         cv::VideoCapture capture0(src);
 
         int framecnt = 0;
@@ -57,9 +65,7 @@ int main(int argc, char *argv[])
         cv::Mat frame,frame_com, frame_fgr, frame_pha,frame_green;
         FaceTimerCounter timercounter;
         double lElapse = 0;
-        cv::Size shape;
-        shape.width = 1280;
-        shape.height = 720;
+        
 
         while (1)
         {
@@ -90,10 +96,11 @@ int main(int argc, char *argv[])
                 frame_com = output["com"];
                 frame_pha = output["pha"];
                 frame_fgr = output["fgr"];
-                
+                /*
                 cv::imshow("com", frame_com);
                 cv::imshow("pha", frame_pha);
                 cv::imshow("fgr", frame_fgr);
+                */
             }
             char c = cv::waitKey(nDelay);
             if (c == 'c')

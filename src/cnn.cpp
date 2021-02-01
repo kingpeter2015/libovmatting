@@ -71,6 +71,8 @@ void CnnDLSDKBase::Load()
         input_data->getPreProcess().setColorFormat(ColorFormat::RGB);
 
         SizeVector input_dims = input_data->getInputData()->getTensorDesc().getDims();
+        input_dims[3] = _config._shape.width;
+        input_dims[2] = _config._shape.height;
         _input_shapes[item.first] = input_dims;
     }
 
@@ -89,13 +91,6 @@ void CnnDLSDKBase::Load()
         item.second->setLayout(Layout::NCHW);
     }
 
-    //std::map<std::string, std::string> config;
-    //config[PluginConfigParams::KEY_CPU_THREADS_NUM] = "4";
-    //config[PluginConfigParams::KEY_CPU_BIND_THREAD] =  PluginConfigParams::YES;
-    //config[PluginConfigParams::KEY_CPU_THROUGHPUT_STREAMS] = "4";
-    _executable_network_ = _config.ie.LoadNetwork(cnnNetwork, _config.deviceName);
-    /*
-
     if (_config.networkCfg.nCpuThreadsNum > 0)
     {
         std::map<std::string, std::string> loadParams;
@@ -106,15 +101,14 @@ void CnnDLSDKBase::Load()
     }
     else
     {
-        
+        _executable_network_ = _config.ie.LoadNetwork(cnnNetwork, _config.deviceName);
     }
-    */
+    
 
     _infer_request_ = _executable_network_.CreateInferRequest();
 }
 
-MattingCNN::MattingCNN(const Config &config)
-    : CnnDLSDKBase(config)
+MattingCNN::MattingCNN(const Config &config) : CnnDLSDKBase(config)
 {
     Load();
 }
@@ -162,7 +156,9 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
                     throw std::runtime_error("Input blob has not allocated buffer");
                 }
                 size_t num_channels = blob->getTensorDesc().getDims()[1];
-                size_t image_size = blob->getTensorDesc().getDims()[3] * blob->getTensorDesc().getDims()[2];
+                size_t image_width = blob->getTensorDesc().getDims()[3];
+                size_t image_height = blob->getTensorDesc().getDims()[2];
+                size_t image_size = image_width * image_height;
                 /** Iterate over all input images **/
                 unsigned char *imagesData = count == 0 ? dataSrc : dataBgr;
                 /** Iterate over all pixel in image (b,g,r) **/
