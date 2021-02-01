@@ -27,7 +27,7 @@ $cmake ..<br>
 $make<br>
 <br>
 4 Run the test program<br>
-$cd out/ <br>
+$cd ./build/ <br>
 $LD_LIBRARY_PATH=./:$(LD_LIBRARY_PATH) ./sample<br>
 
 ## Reference
