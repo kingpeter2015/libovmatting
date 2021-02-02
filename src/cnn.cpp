@@ -47,15 +47,15 @@ CnnDLSDKBase::CnnDLSDKBase(const Config &config) : _config(config) {}
 
 void CnnDLSDKBase::Load()
 {
-    auto cnnNetwork = _config.ie.ReadNetwork(_config.path_to_model, _config.path_to_bin);
+    _cnn_network_ = _config.ie.ReadNetwork(_config.path_to_model, _config.path_to_bin);
 
-    auto input_shapes = cnnNetwork.getInputShapes();
+    auto input_shapes = _cnn_network_.getInputShapes();
 
-    const int currentBatchSize = cnnNetwork.getBatchSize();
+    const int currentBatchSize = _cnn_network_.getBatchSize();
     if (currentBatchSize != _config.max_batch_size)
-        cnnNetwork.setBatchSize(_config.max_batch_size);
+        _cnn_network_.setBatchSize(_config.max_batch_size);
 
-    _inInfo = cnnNetwork.getInputsInfo();
+    _inInfo = _cnn_network_.getInputsInfo();
     _input_blob_names.clear();
     _input_shapes.clear();
     for (auto &item : _inInfo)
@@ -76,9 +76,9 @@ void CnnDLSDKBase::Load()
         _input_shapes[item.first] = input_dims;
     }
 
-    cnnNetwork.reshape(_input_shapes);
+    _cnn_network_.reshape(_input_shapes);
 
-    _outInfo = cnnNetwork.getOutputsInfo();
+    _outInfo = _cnn_network_.getOutputsInfo();
     _output_blobs_names.clear();
     for (auto &item : _outInfo)
     {
@@ -97,11 +97,11 @@ void CnnDLSDKBase::Load()
         loadParams[PluginConfigParams::KEY_CPU_THREADS_NUM] = std::to_string(_config.networkCfg.nCpuThreadsNum);
         loadParams[PluginConfigParams::KEY_CPU_BIND_THREAD] = _config.networkCfg.bCpuBindThread ? PluginConfigParams::YES : PluginConfigParams::NO;
         loadParams[PluginConfigParams::KEY_CPU_THROUGHPUT_STREAMS] = std::to_string(_config.networkCfg.nCpuThroughputStreams);
-        _executable_network_ = _config.ie.LoadNetwork(cnnNetwork, _config.deviceName, loadParams); 
+        _executable_network_ = _config.ie.LoadNetwork(_cnn_network_, _config.deviceName, loadParams); 
     }
     else
     {
-        _executable_network_ = _config.ie.LoadNetwork(cnnNetwork, _config.deviceName);
+        _executable_network_ = _config.ie.LoadNetwork(_cnn_network_, _config.deviceName);
     }
 
     _infer_request_ = _executable_network_.CreateInferRequest();
@@ -110,6 +110,156 @@ void CnnDLSDKBase::Load()
 MattingCNN::MattingCNN(const Config &config) : CnnDLSDKBase(config)
 {
     Load();
+}
+
+void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std::map<std::string, cv::Mat> *result, cv::Size& outp_shape) const
+{
+    try
+    {
+        //1.Input
+        cv::Mat iBgr, iFrame, matBgr, matFrame, matFrame1;
+        iBgr = bgr.clone();
+        iFrame = frame.clone();
+        matFrame1 = frame.clone();
+        unsigned char *dataMatFrame1 = matFrame1.data;
+
+        if (frame.rows != _config._shape.height || frame.cols != _config._shape.width)
+        {
+            cv::resize(frame, iFrame, _config._shape);
+        }
+
+        if (bgr.rows != _config._shape.height || bgr.cols != _config._shape.width)
+        {
+            cv::resize(bgr, iBgr, _config._shape);
+        }
+
+        matBgr = iBgr.clone();
+        matFrame = iFrame.clone();
+        std::vector<std::string> vecBlockNames;
+        vecBlockNames.emplace_back("src");
+        vecBlockNames.emplace_back("bgr");
+
+        unsigned char *dataSrc = (matFrame.data);
+        unsigned char *dataBgr = (matBgr.data);
+
+        //Benchmarking Input
+        {
+            TimerCounter tCount("Phase1-Inputting");
+            int count = -1;
+            for (auto &blockName : vecBlockNames)
+            {
+                count++;
+
+                Blob::Ptr blob = _infer_request_.GetBlob(blockName);
+                auto data = blob->buffer().as<PrecisionTrait<Precision::FP32>::value_type *>();
+                if (data == nullptr)
+                {
+                    throw std::runtime_error("Input blob has not allocated buffer");
+                }
+                size_t num_channels = blob->getTensorDesc().getDims()[1];
+                size_t image_width = blob->getTensorDesc().getDims()[3];
+                size_t image_height = blob->getTensorDesc().getDims()[2];
+                size_t image_size = image_width * image_height;
+                /** Iterate over all input images **/
+                unsigned char *imagesData = count == 0 ? dataSrc : dataBgr;
+                /** Iterate over all pixel in image (b,g,r) **/
+                for (size_t pid = 0; pid < image_size; pid++)
+                {
+                    /** Iterate over all channels **/
+                    data[0 * image_size + pid] = imagesData[pid * num_channels + 2] / 255.0;
+                    data[1 * image_size + pid] = imagesData[pid * num_channels + 1] / 255.0;
+                    data[2 * image_size + pid] = imagesData[pid * num_channels + 0] / 255.0;
+                }
+            }
+        }
+
+        //2.Infer
+        {
+            TimerCounter tCount("Phase2-Infer()");
+            _infer_request_.Infer();
+        }
+
+        //3.Output
+
+        {
+            TimerCounter tCount("Phase3-Outputting");
+            
+            //3.1get Alpha
+            Blob::Ptr blobPha = _infer_request_.GetBlob("pha");
+            auto dataPha = blobPha->buffer().as<PrecisionTrait<Precision::FP32>::value_type *>();            
+
+            size_t num_channels_pha = blobPha->getTensorDesc().getDims()[1];
+            size_t image_width = blobPha->getTensorDesc().getDims()[3];
+            size_t image_height = blobPha->getTensorDesc().getDims()[2];
+            size_t image_size = image_width * image_height;
+
+            cv::Mat matPha = cv::Mat::zeros(_config._shape, CV_8UC1);
+            cv::Mat matCom = cv::Mat::zeros(outp_shape, CV_8UC3);
+            unsigned char *dataMatPha = matPha.data;
+            unsigned char *dataMatCom = matCom.data;
+            for (size_t pid = 0; pid < image_size; pid++)
+            {
+                /** Iterate over all channels **/
+                float alpha = dataPha[pid];
+                dataMatPha[pid] = dataPha[pid] * 255.0;                
+            }
+
+            if(matPha.rows != outp_shape.height || matPha.cols != outp_shape.width)
+            {
+                cv::resize(matPha, matPha, outp_shape);
+            }
+            dataMatPha = matPha.data;
+            image_size = matPha.rows * matPha.cols;
+
+            //3.2 get bgr2
+            cv::Mat matBgr2 = bgr2.clone();
+            if(matBgr2.rows != outp_shape.height || matBgr2.cols != outp_shape.width)
+            {
+                cv::resize(matBgr2, matBgr2,outp_shape);
+            }
+            unsigned char *dataMatBgr2 = matBgr2.data; 
+            if(matFrame1.rows != outp_shape.height || matFrame1.cols != outp_shape.width)
+            {
+                cv::resize(matFrame1, matFrame1, outp_shape);
+            }   
+            dataMatFrame1 = matFrame1.data;
+
+            int num_channels = matCom.channels();
+            for (size_t pid = 0; pid < image_size; pid++)
+            {
+                float alpha = dataMatPha[pid] / 255.0;
+                
+                if(dataMatPha[pid] == 0)
+                {
+                    dataMatCom[pid * num_channels + 2] = dataMatBgr2[pid * num_channels + 0] * (1 - alpha);
+                    dataMatCom[pid * num_channels + 1] = dataMatBgr2[pid * num_channels + 1] * (1 - alpha);
+                    dataMatCom[pid * num_channels + 0] = dataMatBgr2[pid * num_channels + 2] * (1 - alpha);
+                }
+                else if(dataMatPha[pid] == 255)
+                {
+                    dataMatCom[pid * num_channels + 2] = dataMatFrame1[pid * num_channels + 2] * alpha;
+                    dataMatCom[pid * num_channels + 1] = dataMatFrame1[pid * num_channels + 1] * alpha;
+                    dataMatCom[pid * num_channels + 0] = dataMatFrame1[pid * num_channels + 0] * alpha;
+                }
+                else
+                {
+                    dataMatCom[pid * num_channels + 2] = dataMatFrame1[pid * num_channels + 2] * alpha + dataMatBgr2[pid * num_channels + 0] * (1 - alpha);
+                    dataMatCom[pid * num_channels + 1] = dataMatFrame1[pid * num_channels + 1] * alpha + dataMatBgr2[pid * num_channels + 1] * (1 - alpha);
+                    dataMatCom[pid * num_channels + 0] = dataMatFrame1[pid * num_channels + 0] * alpha + dataMatBgr2[pid * num_channels + 2] * (1 - alpha);
+                    //std::cout << "alpha:" << dataMatPha[pid] << std::endl;
+                }
+                
+            }
+            
+
+            (*result)["com"] = matCom;
+            (*result)["pha"] = matPha;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "MattingCNN::Compute2():" << e.what() << '\n';
+    }
 }
 
 void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::string, cv::Mat> *result, cv::Size &outp_shape) const

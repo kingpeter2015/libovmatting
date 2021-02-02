@@ -22,7 +22,7 @@ find_package(OpenCV REQUIRED)
 LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/build)
 
 
-file(GLOB NATIVE_SRCS ${PROJECT_SOURCE_DIR}/main.cpp)
+file(GLOB NATIVE_SRCS ${PROJECT_SOURCE_DIR}/main.cpp ${PROJECT_SOURCE_DIR}/samples/*.cpp)
 # set(SRC ${PROJECT_SOURCE_DIR}/src/*.cpp )
 # file(GLOB NATIVE_SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/main.cpp)
 

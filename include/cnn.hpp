@@ -60,15 +60,11 @@ struct CNetWorkCPUConfig
 */
 struct CnnConfig
 {
-    explicit CnnConfig(const std::string &path_to_model, const std::string &bin, const std::string &src, const std::string &bgr, const cv::Size shape=cv::Size(1920,1080)) : path_to_model(path_to_model), path_to_bin(bin), path_bgr(bgr), path_src(src), _shape(shape){}
+    explicit CnnConfig(const std::string &path_to_model, const std::string &bin, const cv::Size shape=cv::Size(1920,1080)) : path_to_model(path_to_model), path_to_bin(bin), _shape(shape){}
 
     /** @brief Path to model description */
     std::string path_to_model;
     std::string path_to_bin;
-    //背景图片
-    std::string path_bgr;
-    //视频路径
-    std::string path_src;
     float scale{0.25};
     /** @brief Maximal size of batch */
     int max_batch_size{1};
@@ -126,6 +122,8 @@ protected:
     /** @brief Names of output blobs */
     std::vector<std::string> _output_blobs_names;
     
+    InferenceEngine::CNNNetwork _cnn_network_;
+    
     /** @brief IE network */
     InferenceEngine::ExecutableNetwork _executable_network_;
     /** @brief IE InferRequest */
@@ -140,7 +138,8 @@ class MattingCNN : public CnnDLSDKBase
 public:
     explicit MattingCNN(const CnnConfig &config);
 
-    void Compute(const cv::Mat &image, cv::Mat &bgr,  std::map<std::string, cv::Mat> *result, cv::Size& outp_shape) const;
+    void Compute(const cv::Mat &image, cv::Mat &bgr, std::map<std::string, cv::Mat> *result, cv::Size& outp_shape) const;
+    void Compute2(const cv::Mat &image, cv::Mat &bgr, cv::Mat &bgr2, std::map<std::string, cv::Mat> *result, cv::Size& outp_shape) const;
 
     void Compute_Alpha(const cv::Mat &image, cv::Mat &bgr,  std::map<std::string, cv::Mat> *result, cv::Size& outp_shape) const;
 
