@@ -42,6 +42,7 @@ void Inference_Camera()
     std::map<std::string, cv::Mat> output;
     cv::Mat frame, frame_com, frame_fgr, frame_pha, frame_green;
     FaceTimerCounter timercounter;
+    timercounter.Start();
     double lElapse = 0;
 
     while (1)
@@ -58,8 +59,7 @@ void Inference_Camera()
         }
         
         framecnt++;
-        {
-            timercounter.Start();
+        {            
             TimerCounter estimate("Phase...");
             net.Compute2(frame, bgrFrame, bgrFrame2, &output, out_shape);
             lElapse += timercounter.Elapse();
@@ -77,7 +77,7 @@ void Inference_Camera()
             break;
         }
     }
-    std::cout << "Speed:" << lElapse / framecnt << " FPS" << std::endl;
+    std::cout << "Speed:" <<  framecnt * 1000 / (lElapse) << " FPS" << std::endl;
     capture0.release();
     cv::destroyAllWindows();
 }

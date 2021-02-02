@@ -39,8 +39,10 @@ void FaceTimerCounter::Start()
 
 int64_t FaceTimerCounter::Elapse()
 {
-    auto elapsed = std::chrono::high_resolution_clock::now() - _start;
+    auto ckpnt = std::chrono::high_resolution_clock::now();
+    auto elapsed = ckpnt - _start;
     _elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+    _start = ckpnt;
 
     return _elapse;
 }
@@ -233,24 +235,24 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
             for (size_t pid = 0; pid < image_size; pid++)
             {
                 float alpha = dataMatPha[pid] / 255.0;
-                
+                int rowC = pid * num_channels;
                 if(dataMatPha[pid] == 0)
                 {
-                    dataMatCom[pid * num_channels + 2] = dataMatBgr2[pid * num_channels + 0] * (1 - alpha);
-                    dataMatCom[pid * num_channels + 1] = dataMatBgr2[pid * num_channels + 1] * (1 - alpha);
-                    dataMatCom[pid * num_channels + 0] = dataMatBgr2[pid * num_channels + 2] * (1 - alpha);
+                    dataMatCom[rowC + 2] = dataMatBgr2[rowC + 0];
+                    dataMatCom[rowC + 1] = dataMatBgr2[rowC + 1];
+                    dataMatCom[rowC + 0] = dataMatBgr2[rowC + 2];
                 }
                 else if(dataMatPha[pid] == 255)
                 {
-                    dataMatCom[pid * num_channels + 2] = dataMatFrame1[pid * num_channels + 2] * alpha;
-                    dataMatCom[pid * num_channels + 1] = dataMatFrame1[pid * num_channels + 1] * alpha;
-                    dataMatCom[pid * num_channels + 0] = dataMatFrame1[pid * num_channels + 0] * alpha;
+                    dataMatCom[rowC + 2] = dataMatFrame1[rowC + 2];
+                    dataMatCom[rowC + 1] = dataMatFrame1[rowC + 1];
+                    dataMatCom[rowC + 0] = dataMatFrame1[rowC + 0];
                 }
                 else
                 {
-                    dataMatCom[pid * num_channels + 2] = dataMatFrame1[pid * num_channels + 2] * alpha + dataMatBgr2[pid * num_channels + 0] * (1 - alpha);
-                    dataMatCom[pid * num_channels + 1] = dataMatFrame1[pid * num_channels + 1] * alpha + dataMatBgr2[pid * num_channels + 1] * (1 - alpha);
-                    dataMatCom[pid * num_channels + 0] = dataMatFrame1[pid * num_channels + 0] * alpha + dataMatBgr2[pid * num_channels + 2] * (1 - alpha);
+                    dataMatCom[rowC + 2] = dataMatFrame1[rowC + 2] * alpha + dataMatBgr2[rowC + 0] * (1 - alpha);
+                    dataMatCom[rowC + 1] = dataMatFrame1[rowC + 1] * alpha + dataMatBgr2[rowC + 1] * (1 - alpha);
+                    dataMatCom[rowC + 0] = dataMatFrame1[rowC + 0] * alpha + dataMatBgr2[rowC + 2] * (1 - alpha);
                     //std::cout << "alpha:" << alpha << std::endl;
                 }
                 
