@@ -190,7 +190,7 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
         {
             TimerCounter tCount("Phase3-Outputting");
             
-            //3.1get Alpha
+            //3.1 get Alpha
             Blob::Ptr blobPha = _infer_request_.GetBlob("pha");
             auto dataPha = blobPha->buffer().as<PrecisionTrait<Precision::FP32>::value_type *>();            
 
@@ -205,9 +205,8 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
             unsigned char *dataMatCom = matCom.data;
             for (size_t pid = 0; pid < image_size; pid++)
             {
-                /** Iterate over all channels **/
                 float alpha = dataPha[pid];
-                dataMatPha[pid] = dataPha[pid] * 255.0;                
+                dataMatPha[pid] = dataPha[pid] * 255.0;            
             }
 
             if(matPha.rows != outp_shape.height || matPha.cols != outp_shape.width)
@@ -231,11 +230,32 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
             }   
             dataMatFrame1 = matFrame1.data;
 
+            //3.3 get composite
             int num_channels = matCom.channels();
             for (size_t pid = 0; pid < image_size; pid++)
             {
                 float alpha = dataMatPha[pid] / 255.0;
                 int rowC = pid * num_channels;
+                if(dataMatPha[pid] == 0)
+                {
+                    *(dataMatCom + rowC + 2) = *(dataMatBgr2 + rowC);
+                    *(dataMatCom + rowC + 1) = *(dataMatBgr2 + rowC + 1);
+                    *(dataMatCom + rowC) = *(dataMatBgr2 + rowC + 2);
+                }
+                else if(dataMatPha[pid] == 255)
+                {
+                    *(dataMatCom + rowC + 2) = *(dataMatFrame1 + rowC + 2);
+                    *(dataMatCom + rowC + 1) = *(dataMatFrame1 + rowC + 1);
+                    *(dataMatCom + rowC) = *(dataMatFrame1 + rowC);
+                }
+                else
+                {
+                    *(dataMatCom + rowC + 2) = *(dataMatFrame1 + rowC + 2) * alpha + *(dataMatBgr2 + rowC) * (1 - alpha);
+                    *(dataMatCom + rowC + 1) = *(dataMatFrame1 + rowC + 1) * alpha + *(dataMatBgr2 + rowC + 1) * (1 - alpha);
+                    *(dataMatCom + rowC) = *(dataMatFrame1 + rowC) * alpha + *(dataMatBgr2 + rowC + 2) * (1 - alpha);
+                    //std::cout << "alpha:" << alpha << std::endl;
+                }
+                /*
                 if(dataMatPha[pid] == 0)
                 {
                     dataMatCom[rowC + 2] = dataMatBgr2[rowC + 0];
@@ -254,7 +274,7 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
                     dataMatCom[rowC + 1] = dataMatFrame1[rowC + 1] * alpha + dataMatBgr2[rowC + 1] * (1 - alpha);
                     dataMatCom[rowC + 0] = dataMatFrame1[rowC + 0] * alpha + dataMatBgr2[rowC + 2] * (1 - alpha);
                     //std::cout << "alpha:" << alpha << std::endl;
-                }
+                }*/
                 
             }
             

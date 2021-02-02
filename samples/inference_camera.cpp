@@ -20,8 +20,8 @@ void Inference_Camera()
     std::string bgr = "../share/src.png";
     std::string bgr2 = "../share/replace.jpg";
     cv::Size shape;
-    shape.width = 320;
-    shape.height = 180;
+    shape.width = 160;
+    shape.height = 90;
     cv::Size out_shape;
     out_shape.width = 1280;
     out_shape.height = 720;
