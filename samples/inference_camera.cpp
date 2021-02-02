@@ -20,7 +20,7 @@ void Inference_Camera()
     std::string bgr = "../share/src.png";
     std::string bgr2 = "../share/replace.jpg";
     cv::Size shape;
-    shape.width = 360;
+    shape.width = 320;
     shape.height = 180;
     cv::Size out_shape;
     out_shape.width = 1280;
@@ -47,11 +47,15 @@ void Inference_Camera()
     while (1)
     {
         if (!capture0.isOpened())
-            throw("Video Capture Fail\n");
+        {
+            break;
+        }
 
         capture0 >> frame;
         if (frame.empty())
-            throw("frame.empty(): Finished\n");
+        {
+            break;
+        }
         
         framecnt++;
         {

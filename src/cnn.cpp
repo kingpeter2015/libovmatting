@@ -28,6 +28,10 @@ FaceTimerCounter::~FaceTimerCounter()
 
 void FaceTimerCounter::Start()
 {
+    if(_started)
+    {
+        return;
+    }
     _elapse = 0;
     _start = std::chrono::high_resolution_clock::now();
     _started = true;
@@ -217,7 +221,8 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
             {
                 cv::resize(matBgr2, matBgr2,outp_shape);
             }
-            unsigned char *dataMatBgr2 = matBgr2.data; 
+            unsigned char *dataMatBgr2 = matBgr2.data;
+
             if(matFrame1.rows != outp_shape.height || matFrame1.cols != outp_shape.width)
             {
                 cv::resize(matFrame1, matFrame1, outp_shape);
@@ -246,7 +251,7 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
                     dataMatCom[pid * num_channels + 2] = dataMatFrame1[pid * num_channels + 2] * alpha + dataMatBgr2[pid * num_channels + 0] * (1 - alpha);
                     dataMatCom[pid * num_channels + 1] = dataMatFrame1[pid * num_channels + 1] * alpha + dataMatBgr2[pid * num_channels + 1] * (1 - alpha);
                     dataMatCom[pid * num_channels + 0] = dataMatFrame1[pid * num_channels + 0] * alpha + dataMatBgr2[pid * num_channels + 2] * (1 - alpha);
-                    //std::cout << "alpha:" << dataMatPha[pid] << std::endl;
+                    //std::cout << "alpha:" << alpha << std::endl;
                 }
                 
             }
