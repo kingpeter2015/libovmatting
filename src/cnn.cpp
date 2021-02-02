@@ -93,8 +93,14 @@ void CnnDLSDKBase::Load()
 
         Layout layout = item.second->getLayout();
         std::cout << "Output Name:" << item.first << ", Layout Type:" << layout << std::endl;
-
-        item.second->setLayout(Layout::NCHW);
+        if(layout != Layout::NCHW)
+        {
+            item.second->setLayout(Layout::NC);
+        }
+        else
+        {
+            item.second->setLayout(Layout::NCHW);
+        }
     }
 
     if (_config.networkCfg.nCpuThreadsNum > 0)
