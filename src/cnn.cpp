@@ -216,7 +216,7 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
 
             if(matPha.rows != outp_shape.height || matPha.cols != outp_shape.width)
             {
-                cv::resize(matPha, matPha, outp_shape);
+                cv::resize(matPha, matPha, outp_shape,0,0,cv::INTER_CUBIC);
             }
             dataMatPha = matPha.data;
             image_size = matPha.rows * matPha.cols;

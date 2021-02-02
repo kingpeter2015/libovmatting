@@ -28,6 +28,7 @@ void Inference_Camera()
     CnnConfig config(model, bin, shape);
     config.networkCfg.nCpuThreadsNum = 0;
     config.networkCfg.nCpuThroughputStreams = 1;
+    //config.deviceName = "GPU";
     MattingCNN net(config);
 
     InitWindows();
