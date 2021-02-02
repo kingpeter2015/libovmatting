@@ -186,7 +186,6 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
         }
 
         //3.Output
-
         {
             TimerCounter tCount("Phase3-Outputting");
             
@@ -220,7 +219,7 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
             cv::Mat matBgr2 = bgr2.clone();
             if(matBgr2.rows != outp_shape.height || matBgr2.cols != outp_shape.width)
             {
-                cv::resize(matBgr2, matBgr2,outp_shape);
+                cv::resize(matBgr2, matBgr2, outp_shape);
             }
             unsigned char *dataMatBgr2 = matBgr2.data;
 
@@ -234,15 +233,16 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
             int num_channels = matCom.channels();
             for (size_t pid = 0; pid < image_size; pid++)
             {
+                int nAlpha = *(dataMatPha + pid);
                 float alpha = dataMatPha[pid] / 255.0;
                 int rowC = pid * num_channels;
-                if(dataMatPha[pid] == 0)
+                if(nAlpha == 0)
                 {
-                    *(dataMatCom + rowC + 2) = *(dataMatBgr2 + rowC);
+                    *(dataMatCom + rowC + 2) = *(dataMatBgr2 + rowC + 2);
                     *(dataMatCom + rowC + 1) = *(dataMatBgr2 + rowC + 1);
-                    *(dataMatCom + rowC) = *(dataMatBgr2 + rowC + 2);
+                    *(dataMatCom + rowC) = *(dataMatBgr2 + rowC + 0);
                 }
-                else if(dataMatPha[pid] == 255)
+                else if(nAlpha == 255)
                 {
                     *(dataMatCom + rowC + 2) = *(dataMatFrame1 + rowC + 2);
                     *(dataMatCom + rowC + 1) = *(dataMatFrame1 + rowC + 1);
@@ -250,9 +250,9 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
                 }
                 else
                 {
-                    *(dataMatCom + rowC + 2) = *(dataMatFrame1 + rowC + 2) * alpha + *(dataMatBgr2 + rowC) * (1 - alpha);
+                    *(dataMatCom + rowC + 2) = *(dataMatFrame1 + rowC + 2) * alpha + *(dataMatBgr2 + rowC + 2) * (1 - alpha);
                     *(dataMatCom + rowC + 1) = *(dataMatFrame1 + rowC + 1) * alpha + *(dataMatBgr2 + rowC + 1) * (1 - alpha);
-                    *(dataMatCom + rowC) = *(dataMatFrame1 + rowC) * alpha + *(dataMatBgr2 + rowC + 2) * (1 - alpha);
+                    *(dataMatCom + rowC) = *(dataMatFrame1 + rowC) * alpha + *(dataMatBgr2 + rowC) * (1 - alpha);
                     //std::cout << "alpha:" << alpha << std::endl;
                 }
                 /*
