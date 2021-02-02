@@ -91,8 +91,8 @@ int main(int argc, char *argv[])
                 {
                     timercounter.Start();
                     TimerCounter estimate("Phase...");
-                    //net.Compute(frame, bgrFrame, &output, out_shape);
-                    net.Compute_Alpha(frame, bgrFrame, &output, shape);
+                    net.Compute(frame, bgrFrame, &output, out_shape);
+                    //net.Compute_Alpha(frame, bgrFrame, &output, shape);
                     lElapse += timercounter.Elapse();
                     std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;
                 }
