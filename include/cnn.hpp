@@ -24,12 +24,23 @@ public:
     ~TimerCounter()
     {
         auto elapsed = std::chrono::high_resolution_clock::now() - _start;
-        _elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+#if (LINUX)
+		_elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+#else
+		_elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+#endif // _WIN
+
+        
         std::cout << "Benchmarking " << _name <<"\t\t| elapse miliseconds: " << _elapse / 1.0 << ",\t estimate fps: " << 1000.0/_elapse << std::endl;
     }
 private:
     std::string _name;
-    std::chrono::_V2::system_clock::time_point _start;
+#if (LINUX)
+	std::chrono::_V2::system_clock::time_point _start;
+#elif (_MSC_VER)
+	std::chrono::time_point<std::chrono::steady_clock> _start;
+#endif // _WIN
+    
     int64_t _elapse;
     bool _started = false;
 };
@@ -43,7 +54,11 @@ public:
   int64_t Elapse();
 
 private:
-  std::chrono::_V2::system_clock::time_point _start;
+#if (LINUX)
+	std::chrono::_V2::system_clock::time_point _start;
+#elif (_MSC_VER)
+	std::chrono::time_point<std::chrono::steady_clock> _start;
+#endif // _WIN
   int64_t _elapse;
   bool _started = false;
 };
