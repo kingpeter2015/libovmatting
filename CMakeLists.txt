@@ -26,7 +26,7 @@ file(GLOB NATIVE_SRCS ${PROJECT_SOURCE_DIR}/main.cpp ${PROJECT_SOURCE_DIR}/sampl
 # set(SRC ${PROJECT_SOURCE_DIR}/src/*.cpp )
 # file(GLOB NATIVE_SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/main.cpp)
 
-ADD_EXECUTABLE(${TARGET_NAME} ${NATIVE_SRCS})
+ADD_EXECUTABLE(${TARGET_NAME} ${NATIVE_SRCS} "include/ovmatter.h")
 
 target_link_libraries(${TARGET_NAME} PRIVATE ovmatting)
 

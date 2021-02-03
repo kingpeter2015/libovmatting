@@ -33,4 +33,6 @@
 
 .svn
 .vscode
-build/
+**/build/
+**/.vs
+**/x64

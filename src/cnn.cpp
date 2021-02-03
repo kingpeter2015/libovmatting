@@ -49,7 +49,7 @@ int64_t FaceTimerCounter::Elapse()
 
 using namespace InferenceEngine;
 
-CnnDLSDKBase::CnnDLSDKBase(const Config &config) : _config(config) {}
+CnnDLSDKBase::CnnDLSDKBase(const CNNConfig&config) : _config(config) {}
 
 void CnnDLSDKBase::Load()
 {
@@ -119,7 +119,7 @@ void CnnDLSDKBase::Load()
     _infer_request_ = _executable_network_.CreateInferRequest();
 }
 
-MattingCNN::MattingCNN(const Config &config) : CnnDLSDKBase(config)
+MattingCNN::MattingCNN(const CNNConfig&config) : CnnDLSDKBase(config)
 {
     Load();
 }
@@ -172,15 +172,18 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
                 size_t image_width = blob->getTensorDesc().getDims()[3];
                 size_t image_height = blob->getTensorDesc().getDims()[2];
                 size_t image_size = image_width * image_height;
+
                 /** Iterate over all input images **/
                 unsigned char *imagesData = count == 0 ? dataSrc : dataBgr;
+
                 /** Iterate over all pixel in image (b,g,r) **/
                 for (size_t pid = 0; pid < image_size; pid++)
                 {
                     /** Iterate over all channels **/
-                    data[0 * image_size + pid] = imagesData[pid * num_channels + 2] / 255.0;
-                    data[1 * image_size + pid] = imagesData[pid * num_channels + 1] / 255.0;
-                    data[2 * image_size + pid] = imagesData[pid * num_channels + 0] / 255.0;
+                    int numC = pid * num_channels;
+                    *(data + pid) = *(imagesData + numC + 2) / 255.0f;
+                    *(data + image_size + pid) = *(imagesData + numC + 1) / 255.0f;
+                    *(data + image_size + image_size + pid) = *(imagesData + numC) / 255.0f;
                 }
             }
         }
@@ -202,7 +205,7 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
             size_t num_channels_pha = blobPha->getTensorDesc().getDims()[1];
             size_t image_width = blobPha->getTensorDesc().getDims()[3];
             size_t image_height = blobPha->getTensorDesc().getDims()[2];
-            size_t image_size = image_width * image_height;
+            unsigned long image_size = image_width * image_height;
 
             cv::Mat matPha = cv::Mat::zeros(_config._shape, CV_8UC1);
             cv::Mat matCom = cv::Mat::zeros(outp_shape, CV_8UC3);
@@ -210,8 +213,8 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
             unsigned char *dataMatCom = matCom.data;
             for (size_t pid = 0; pid < image_size; pid++)
             {
-                float alpha = dataPha[pid];
-                dataMatPha[pid] = dataPha[pid] * 255.0;            
+                float alpha = *(dataPha + pid);
+                *(dataMatPha + pid) = alpha * 255.0f;            
             }
 
             if(matPha.rows != outp_shape.height || matPha.cols != outp_shape.width)
@@ -239,14 +242,13 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
             int num_channels = matCom.channels();
             for (size_t pid = 0; pid < image_size; pid++)
             {
-                int nAlpha = *(dataMatPha + pid);
-                float alpha = dataMatPha[pid] / 255.0;
+                int nAlpha = *(dataMatPha + pid);                
                 int rowC = pid * num_channels;
                 if(nAlpha == 0)
                 {
                     *(dataMatCom + rowC + 2) = *(dataMatBgr2 + rowC + 2);
                     *(dataMatCom + rowC + 1) = *(dataMatBgr2 + rowC + 1);
-                    *(dataMatCom + rowC) = *(dataMatBgr2 + rowC + 0);
+                    *(dataMatCom + rowC) = *(dataMatBgr2 + rowC);
                 }
                 else if(nAlpha == 255)
                 {
@@ -256,32 +258,11 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
                 }
                 else
                 {
+                    float alpha = nAlpha / 255.0;
                     *(dataMatCom + rowC + 2) = *(dataMatFrame1 + rowC + 2) * alpha + *(dataMatBgr2 + rowC + 2) * (1 - alpha);
                     *(dataMatCom + rowC + 1) = *(dataMatFrame1 + rowC + 1) * alpha + *(dataMatBgr2 + rowC + 1) * (1 - alpha);
                     *(dataMatCom + rowC) = *(dataMatFrame1 + rowC) * alpha + *(dataMatBgr2 + rowC) * (1 - alpha);
-                    //std::cout << "alpha:" << alpha << std::endl;
                 }
-                /*
-                if(dataMatPha[pid] == 0)
-                {
-                    dataMatCom[rowC + 2] = dataMatBgr2[rowC + 0];
-                    dataMatCom[rowC + 1] = dataMatBgr2[rowC + 1];
-                    dataMatCom[rowC + 0] = dataMatBgr2[rowC + 2];
-                }
-                else if(dataMatPha[pid] == 255)
-                {
-                    dataMatCom[rowC + 2] = dataMatFrame1[rowC + 2];
-                    dataMatCom[rowC + 1] = dataMatFrame1[rowC + 1];
-                    dataMatCom[rowC + 0] = dataMatFrame1[rowC + 0];
-                }
-                else
-                {
-                    dataMatCom[rowC + 2] = dataMatFrame1[rowC + 2] * alpha + dataMatBgr2[rowC + 0] * (1 - alpha);
-                    dataMatCom[rowC + 1] = dataMatFrame1[rowC + 1] * alpha + dataMatBgr2[rowC + 1] * (1 - alpha);
-                    dataMatCom[rowC + 0] = dataMatFrame1[rowC + 0] * alpha + dataMatBgr2[rowC + 2] * (1 - alpha);
-                    //std::cout << "alpha:" << alpha << std::endl;
-                }*/
-                
             }
             
 
@@ -378,7 +359,7 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
             size_t num_channels_pha = blobPha->getTensorDesc().getDims()[1];
             size_t image_width = blobPha->getTensorDesc().getDims()[3];
             size_t image_height = blobPha->getTensorDesc().getDims()[2];
-            size_t image_size = image_width * image_height;
+            unsigned long image_size = image_width * image_height;
 
             cv::Mat matPha = cv::Mat::zeros(_config._shape, CV_8UC1);
             cv::Mat matFgr = cv::Mat::zeros(_config._shape, CV_8UC3);
@@ -406,23 +387,10 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
             dataMatPha = matPha.data;
             dataMatFgr = matFgr.data;
             image_size = matPha.rows * matPha.cols;
-            /*
-            cv::bitwise_and(matFrame1, matPha, matFgr);
-            cv::bitwise_and(matGreen, 255-matPha, matGreen);
-            cv::bitwise_xor(matFgr, matGreen, matCom);
-            
-            for (size_t pid = 0; pid < image_size; pid++)
-            {
-                char alpha = dataMatPha[pid * num_channels + 2] ? 255 : 0;
-                dataMatCom[pid * num_channels + 2] = (dataMatFrame1[pid * num_channels + 2] & alpha) | (dataMatGreen[pid * num_channels + 2] & (255 - alpha));
-                dataMatCom[pid * num_channels + 1] = (dataMatFrame1[pid * num_channels + 1] & alpha) | (dataMatGreen[pid * num_channels + 1] & (255 - alpha));
-                dataMatCom[pid * num_channels + 0] = (dataMatFrame1[pid * num_channels + 0] & alpha) | (dataMatGreen[pid * num_channels + 0] & (255 - alpha));
-            }
-            */
 
            for (size_t pid = 0; pid < image_size; pid++)
             {
-                float alpha = dataMatPha[pid] / 255.0;
+                float alpha = dataMatPha[pid] / 255.0f;
                 dataMatCom[pid * num_channels + 2] = (dataMatFrame1[pid * num_channels + 2] * alpha) + (dataMatGreen[pid * num_channels + 2] * (1 - alpha));
                 dataMatCom[pid * num_channels + 1] = (dataMatFrame1[pid * num_channels + 1] * alpha) + (dataMatGreen[pid * num_channels + 1] * (1 - alpha));
                 dataMatCom[pid * num_channels + 0] = (dataMatFrame1[pid * num_channels + 0] * alpha) + (dataMatGreen[pid * num_channels + 0] * (1 - alpha));

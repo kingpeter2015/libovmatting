@@ -11,6 +11,7 @@
 #include "ocv_common.hpp"
 
 #include <inference_engine.hpp>
+#include <ie_common.h>
 
 
 class TimerCounter
@@ -65,17 +66,17 @@ private:
 
 struct CNetWorkCPUConfig
 {
-    int nCpuThreadsNum;        //default 0
-    bool bCpuBindThread;       //default true
-    int nCpuThroughputStreams; //default 1
+    int nCpuThreadsNum = 0;        //default 0
+    bool bCpuBindThread = true;       //default true
+    int nCpuThroughputStreams = 1; //default 1
 };
 
 /**
 * @brief Base class of config for network
 */
-struct CnnConfig
+struct CNNConfig
 {
-    explicit CnnConfig(const std::string &path_to_model, const std::string &bin, const cv::Size shape=cv::Size(1920,1080)) : path_to_model(path_to_model), path_to_bin(bin), _shape(shape){}
+    explicit CNNConfig(const std::string &path_to_model, const std::string &bin, const cv::Size shape=cv::Size(1920,1080)) : path_to_model(path_to_model), path_to_bin(bin), _shape(shape){}
 
     /** @brief Path to model description */
     std::string path_to_model;
@@ -100,12 +101,10 @@ struct CnnConfig
 class CnnDLSDKBase
 {
 public:
-    using Config = CnnConfig;
-
     /**
    * @brief Constructor
    */
-    explicit CnnDLSDKBase(const Config &config);
+    explicit CnnDLSDKBase(const CNNConfig& config);
 
     /**
    * @brief Descructor
@@ -125,7 +124,7 @@ public:
 protected:
     
     /** @brief Config */
-    Config _config;
+    CNNConfig _config;
 
     /** @brief Net inputs info */
     InferenceEngine::InputsDataMap _inInfo;
@@ -151,7 +150,7 @@ protected:
 class MattingCNN : public CnnDLSDKBase
 {
 public:
-    explicit MattingCNN(const CnnConfig &config);
+    explicit MattingCNN(const CNNConfig& config);
 
     void Compute(const cv::Mat &image, cv::Mat &bgr, std::map<std::string, cv::Mat> *result, cv::Size& outp_shape) const;
     void Compute2(const cv::Mat &image, cv::Mat &bgr, cv::Mat &bgr2, std::map<std::string, cv::Mat> *result, cv::Size& outp_shape) const;
@@ -163,6 +162,7 @@ private:
 };
 
 //异步算法
+template <typename T>
 class AsyncAlgorithm
 {
 public:
@@ -171,17 +171,11 @@ public:
     virtual void submitRequest() = 0;
     virtual void wait() = 0;
     virtual void printPerformanceCounts(const std::string &fullDeviceName) = 0;
-};
-
-//
-template <typename T>
-class AsyncDetection : public AsyncAlgorithm
-{
-public:
     virtual std::vector<T> fetchResults() = 0;
 };
 
-class BaseMatting : public AsyncAlgorithm
+template <typename T>
+class BaseAsyncCNN : public AsyncAlgorithm<T>
 {
 protected:
     InferenceEngine::InferRequest::Ptr request;
@@ -189,12 +183,15 @@ protected:
     std::string topoName;
 
 public:
-    explicit BaseMatting(bool isAsync = false) : isAsync(isAsync) {}
+    explicit BaseAsyncCNN(std::string name, bool isAsync = false) : topoName(name), isAsync(isAsync) {}
 
     void submitRequest() override
     {
         if (request == nullptr)
+        {
             return;
+        }
+
         if (isAsync)
         {
             request->StartAsync();
@@ -208,14 +205,15 @@ public:
     void wait() override
     {
         if (!request || !isAsync)
+        {
             return;
+        }
         request->Wait(InferenceEngine::IInferRequest::WaitMode::RESULT_READY);
     }
 
     void printPerformanceCounts(const std::string &fullDeviceName) override
     {
-        std::cout << "BaseMatting Performance counts for " << topoName << std::endl
-                  << std::endl;
+        std::cout << "BaseMatting Performance counts for " << topoName << std::endl << std::endl;
         ::printPerformanceCounts(*request, std::cout, fullDeviceName, false);
     }
 };
