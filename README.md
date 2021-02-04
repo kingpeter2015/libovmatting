@@ -11,7 +11,7 @@ The code of libovmatting is released under the MIT License.
 ## Development environment
 CentOS 7<br>
 Ubuntu<br>
-Windows(TODO)<br>
+Windows 10<br>
 
 ## Usage
 1 Install openvino<br>
