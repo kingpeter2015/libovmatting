@@ -35,8 +35,8 @@ namespace ovlib
         ~TimerCounter()
         {
             auto elapsed = std::chrono::high_resolution_clock::now() - _start;
-#if (LINUX)
-            _elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+#if (_MSC_VER)
+            _elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();            
 #else
             _elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
 #endif // _WIN
@@ -46,10 +46,10 @@ namespace ovlib
         }
     private:
         std::string _name;
-#if (LINUX)
-        std::chrono::_V2::system_clock::time_point _start;
-#elif (_MSC_VER)
+#if (_MSC_VER)
         std::chrono::time_point<std::chrono::steady_clock> _start;
+#else
+        std::chrono::_V2::system_clock::time_point _start;
 #endif // _WIN
 
         int64_t _elapse;
@@ -65,10 +65,10 @@ namespace ovlib
         int64_t Elapse();
 
     private:
-#if (LINUX)
-        std::chrono::_V2::system_clock::time_point _start;
-#elif (_MSC_VER)
+#if (_MSC_VER)
         std::chrono::time_point<std::chrono::steady_clock> _start;
+#else
+        std::chrono::_V2::system_clock::time_point _start;
 #endif // _WIN
         int64_t _elapse;
         bool _started = false;

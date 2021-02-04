@@ -28,11 +28,11 @@ void Inference_Camera()
     std::string bgr = ".\\share\\src.png";
     std::string bgr2 = ".\\share\\replace.jpg";
 #else
-    std::string model = "./share/pytorch_mobilenetv2.xml";
-    std::string bin = "./share/pytorch_mobilenetv2.bin";
-    std::string src = "./share/src.mp4";
-    std::string bgr = "./share/src.png";
-    std::string bgr2 = "./share/replace.jpg";
+    std::string model = "../share/pytorch_mobilenetv2.xml";
+    std::string bin = "../share/pytorch_mobilenetv2.bin";
+    std::string src = "../share/src.mp4";
+    std::string bgr = "../share/src.png";
+    std::string bgr2 = "../share/replace.jpg";
 #endif //  WINDOWS
     ovlib::matter::Shape in_shape, out_shape;
     in_shape.width = 256;
