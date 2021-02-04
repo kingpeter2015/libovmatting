@@ -53,6 +53,9 @@
     <ClInclude Include="..\..\include\cnn_backgroundv2.hpp">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\ns_thread.hpp">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -83,6 +86,9 @@
       <Filter>source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\cnn_backgroundv2.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ns_thread.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>

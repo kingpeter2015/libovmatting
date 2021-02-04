@@ -5,7 +5,8 @@ int main(int argc, char *argv[])
 {
     try
     {
-        Inference_Camera();
+        //Inference_Camera();
+        Inference_Video();
     }
     catch (const std::exception &ex)
     {

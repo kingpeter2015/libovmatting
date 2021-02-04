@@ -30,21 +30,31 @@ SOFTWARE.
 #include "ovmatter.h"
 #include "ovmatter_base_impl.hpp"
 #include "cnn_backgroundv2.hpp"
+#include "ns_thread.hpp"
 
 namespace ovlib
 {
 	namespace matter
 	{
-		class MatterBackgroundV2Impl : public MatterBaseImpl
+		class MatterBackgroundV2Impl : public MatterBaseImpl, public ov_simple_thread
 		{
 		public:
 			MatterBackgroundV2Impl();
 			virtual ~MatterBackgroundV2Impl();
-			virtual bool init(const MatterParams& params);
-			virtual int process(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, std::map<std::string, FrameData>& results, const ovlib::matter::Shape& shape);
+
+			/***for MatterBaseImpl*****/
+			virtual bool init(const MatterParams& params) override;
+			virtual int process(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape, std::map<std::string, FrameData>* pResults = 0) override;
+
+			/***for ov_simple_thread***/
+			virtual void run() override;
 
 		private:
-			std::unique_ptr< BaseAsyncCNN<MattingObject> > _pCnn;
+			int doWork_sync(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape, std::map<std::string, FrameData>* pResults);
+			int doWork_async(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape);
+		private:			
+			std::unique_ptr<CNN_Background_V2> _pCnn;
+
 			bool _bInit;
 
 			cv::Mat _prevFrame;

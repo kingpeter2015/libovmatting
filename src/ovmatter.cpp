@@ -26,6 +26,7 @@ MatterChannel* MatterChannel::create(const MatterParams& params)
 int MatterChannel::getDefMatterParams(MatterParams& params)
 {
 	params.method = METHOD_BACKGROUND_MATTING_V2;
+	params.effect = EFFECT_NONE;
 	params.device = "CPU";
 	params.scale = 0.25;
 	params.max_batch_size = 1;
@@ -43,7 +44,7 @@ int MatterChannel::getDefMatterParams(MatterParams& params)
 	params.input_shape.width = 256;
 	params.input_shape.height = 144;
 
-	params.is_async = true;
+	params.is_async = false;
 
 	return 0;	
 }

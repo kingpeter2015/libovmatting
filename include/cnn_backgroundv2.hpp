@@ -44,6 +44,10 @@ public:
     }
 
     MattingObjects fetchResults() override;
+    CNNConfig* getConfig()
+    {
+        return &_config;
+    }
 };
 
 

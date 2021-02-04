@@ -31,6 +31,12 @@ namespace ovlib
             METHOD_BACKGROUND_MATTING_V2 = 0x00
         };
 
+        enum OV_MATTER_API MATTER_EFFECT
+        {
+            EFFECT_NONE,
+            EFFECT_BLUR
+        };
+
         struct OV_MATTER_API Rect
         {
             int left;
@@ -62,9 +68,13 @@ namespace ovlib
             void* tag;
         };
 
+        //callback function for asynchronous process
+        typedef void (*asynProcessCB)(FrameData& frame_com, FrameData& frame_alpha);
+
         struct OV_MATTER_API MatterParams
         {       
             MattingMethod method;
+            MATTER_EFFECT effect;
 
             std::string device; 
             std::string path_to_model;
@@ -76,10 +86,13 @@ namespace ovlib
             int cpu_threads_num;    //default 0
             bool cpu_bind_thread; //default true
             int cpu_throughput_streams;    //default 1
+
+            asynProcessCB fnCb;
             bool is_async;
 
             Shape input_shape;
-        };
+
+        };        
 
         class OV_MATTER_API MatterChannel
         {
@@ -89,7 +102,7 @@ namespace ovlib
             static void destroyed(MatterChannel* pChan);
 
             virtual ~MatterChannel() {};
-            virtual int process(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, std::map<std::string, FrameData>& results, const ovlib::matter::Shape& shape) = 0;
+            virtual int process(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape, std::map<std::string, FrameData>* pResults = 0) = 0;
         };
     }; // namespace matter
 }; // namespace ovlib

@@ -99,6 +99,7 @@
     <ClInclude Include="..\..\include\cnn_backgroundv2.hpp" />
     <ClInclude Include="..\..\include\ns_bmp.hpp" />
     <ClInclude Include="..\..\include\ns_register.hpp" />
+    <ClInclude Include="..\..\include\ns_thread.hpp" />
     <ClInclude Include="..\..\include\ns_utils.hpp" />
     <ClInclude Include="..\..\include\ocv_common.hpp" />
     <ClInclude Include="..\..\include\ovmatter.h" />
@@ -112,6 +113,7 @@
     <ClCompile Include="..\..\src\cnn_backgroundv2.cpp" />
     <ClCompile Include="..\..\src\ns_bmp.cpp" />
     <ClCompile Include="..\..\src\ns_register.cpp" />
+    <ClCompile Include="..\..\src\ns_thread.cpp" />
     <ClCompile Include="..\..\src\ns_utils.cpp" />
     <ClCompile Include="..\..\src\ovmatter.cpp" />
     <ClCompile Include="..\..\src\ovmatter_base_impl.cpp" />

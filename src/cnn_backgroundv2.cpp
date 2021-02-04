@@ -11,7 +11,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <inference_engine.hpp>
 
-#include <ngraph/ngraph.hpp>
+#include "ovmatter.h"
 
 using namespace InferenceEngine;
 
@@ -20,7 +20,7 @@ CNN_Background_V2::CNN_Background_V2(const CNNConfig& config) : _config(config),
     topoName = "CNN_Background_V2";
     isAsync = config.is_async;
 
-    auto cnnNetwork = _config.ie.ReadNetwork(config.path_to_model, config.path_to_bin);
+    auto cnnNetwork = _config.ie.ReadNetwork(_config.path_to_model, _config.path_to_bin);
 
     InferenceEngine::InputsDataMap inputInfo = cnnNetwork.getInputsInfo();
     const int currentBatchSize = cnnNetwork.getBatchSize();
@@ -98,7 +98,13 @@ void CNN_Background_V2::enqueue(const cv::Mat& frame, const cv::Mat& bgr, const 
         //1.init fields
         _frame = frame.clone();
         _bgr = bgr.clone();
+        
         _bgrReplace = bgrReplace.clone();
+        if (_config.effect == ovlib::matter::EFFECT_BLUR)
+        {
+            cv::bilateralFilter(bgrReplace, _bgrReplace, 30, 500, 5);
+        }
+
         _out_shape = out_shape;
 
         //2. Input
@@ -156,11 +162,8 @@ void CNN_Background_V2::enqueue(const cv::Mat& frame, const cv::Mat& bgr, const 
     {
         _bEnqueue = false;
         std::cerr << "CNN_Background_V2::enqueue():" << e.what() << '\n';
-    }
-    
+    }    
 }
-
-
 
 MattingObjects CNN_Background_V2::fetchResults()
 {

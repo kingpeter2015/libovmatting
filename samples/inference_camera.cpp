@@ -35,8 +35,8 @@ void Inference_Camera()
     std::string bgr2 = "../share/replace.jpg";
 #endif //  WINDOWS
     ovlib::matter::Shape in_shape, out_shape;
-    in_shape.width = 256;
-    in_shape.height = 144;
+    in_shape.width = 320;
+    in_shape.height = 180;
     out_shape.width = 1280;
     out_shape.height = 720;
 
@@ -47,6 +47,7 @@ void Inference_Camera()
     params.path_to_bin = bin;
     params.method = ovlib::matter::METHOD_BACKGROUND_MATTING_V2;
     params.is_async = true;
+    params.effect = ovlib::matter::EFFECT_BLUR;
     MatterChannel* pChan = MatterChannel::create(params);
     if (!pChan)
     {
@@ -92,9 +93,10 @@ void Inference_Camera()
             FrameData frame_bgr;
             ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr);
             FrameData frame_bgr_replace;
-            ovlib::Utils_Ov::mat2FrameData(bgrFrame2, frame_bgr_replace);
+            //ovlib::Utils_Ov::mat2FrameData(bgrFrame2, frame_bgr_replace);
+            ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr_replace);
 
-            pChan->process(frame_main, frame_bgr, frame_bgr_replace, output, out_shape);
+            pChan->process(frame_main, frame_bgr, frame_bgr_replace, out_shape, &output);
             lElapse += timercounter.Elapse();
             std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;
         //}

@@ -1,5 +1,6 @@
 #include "samples.hpp"
 #include "ns_utils.hpp"
+
 #include <inference_engine.hpp>
 
 using namespace InferenceEngine;
@@ -8,8 +9,8 @@ using namespace ovlib::matter;
 
 static void InitWindows()
 {
-    int width = 640;
-    int height = 480;
+    int width = 1280;
+    int height = 720;
     cv::namedWindow("com", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
     cv::resizeWindow("com", width, height);
     cv::moveWindow("com", 0, 0);
@@ -20,7 +21,6 @@ static void InitWindows()
 
 void Inference_Video()
 {
-    
 #ifdef _MSC_VER
     std::string model = ".\\share\\pytorch_mobilenetv2.xml";
     std::string bin = ".\\share\\pytorch_mobilenetv2.bin";
@@ -34,7 +34,6 @@ void Inference_Video()
     std::string bgr = "./share/src.png";
     std::string bgr2 = "./share/replace.jpg";
 #endif //  WINDOWS
-
     ovlib::matter::Shape in_shape, out_shape;
     in_shape.width = 320;
     in_shape.height = 180;
@@ -47,6 +46,8 @@ void Inference_Video()
     params.path_to_model = model;
     params.path_to_bin = bin;
     params.method = ovlib::matter::METHOD_BACKGROUND_MATTING_V2;
+    params.is_async = true;
+    params.effect = ovlib::matter::EFFECT_BLUR;
     MatterChannel* pChan = MatterChannel::create(params);
     if (!pChan)
     {
@@ -85,19 +86,20 @@ void Inference_Video()
         }
 
         framecnt++;
-        {
-            ovlib::TimerCounter estimate("Phase...");
-            FrameData frame_main;
-            ovlib::Utils_Ov::mat2FrameData(frame, frame_main);
-            FrameData frame_bgr;
-            ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr);
-            FrameData frame_bgr_replace;
-            ovlib::Utils_Ov::mat2FrameData(bgrFrame2, frame_bgr_replace);
+        //{            
+        ovlib::TimerCounter estimate("Phase...");
+        FrameData frame_main;
+        ovlib::Utils_Ov::mat2FrameData(frame, frame_main);
+        FrameData frame_bgr;
+        ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr);
+        FrameData frame_bgr_replace;
+        //ovlib::Utils_Ov::mat2FrameData(bgrFrame2, frame_bgr_replace);
+        ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr_replace);
 
-            pChan->process(frame_main, frame_bgr, frame_bgr_replace, output, out_shape);
-            lElapse += timercounter.Elapse();
-            std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;
-        }
+        pChan->process(frame_main, frame_bgr, frame_bgr_replace, out_shape, &output);
+        lElapse += timercounter.Elapse();
+        std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;
+        //}
 
         frame_com = output["com"];
         frame_pha = output["pha"];

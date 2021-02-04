@@ -12,7 +12,8 @@ MatterBackgroundV2Impl::MatterBackgroundV2Impl() : _bInit(false)
 
 MatterBackgroundV2Impl::~MatterBackgroundV2Impl()
 {
-
+	interrupt();
+	_bInit = false;
 }
 
 bool MatterBackgroundV2Impl::init(const MatterParams& param)
@@ -53,7 +54,10 @@ bool MatterBackgroundV2Impl::init(const MatterParams& param)
 		config.cpu_throughput_streams = param.cpu_throughput_streams;
 		config.path_to_model = param.path_to_model;
 		config.path_to_bin = param.path_to_bin;
+		config.effect = param.effect;
 		_pCnn.reset(new CNN_Background_V2(config));
+
+		start(); //¿ªÆôÏß³Ì
 
 		_bInit = true;
 	}
@@ -64,7 +68,29 @@ bool MatterBackgroundV2Impl::init(const MatterParams& param)
 	return _bInit;
 }
 
-int MatterBackgroundV2Impl::process(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, std::map<std::string, FrameData>& results, const ovlib::matter::Shape& shape)
+int MatterBackgroundV2Impl::process(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape, std::map<std::string, FrameData>* pResults)
+{
+	if (!_pCnn)
+	{
+		return -1;
+	}
+
+	if (_pCnn->getConfig()->is_async)
+	{
+		return doWork_async(frame, bgr, bgrReplace, shape);
+	}
+	else
+	{
+		return doWork_sync(frame, bgr, bgrReplace, shape, pResults);
+	}
+}
+
+int MatterBackgroundV2Impl::doWork_async(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape)
+{
+	return -1;
+}
+
+int MatterBackgroundV2Impl::doWork_sync(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape, std::map<std::string, FrameData>* pResults)
 {
 	int ret = -1;
 	if (frame.frame == 0 || bgr.frame == 0 || bgrReplace.frame == 0
@@ -73,6 +99,11 @@ int MatterBackgroundV2Impl::process(FrameData& frame, FrameData& bgr, FrameData&
 		|| bgrReplace.width == 0 || bgrReplace.height == 0)
 	{
 		return ret;
+	}
+
+	if (!pResults)
+	{
+		return -1;
 	}
 
 	cv::Mat matFrame;
@@ -97,8 +128,20 @@ int MatterBackgroundV2Impl::process(FrameData& frame, FrameData& bgr, FrameData&
 	ovlib::Utils_Ov::mat2FrameData(_matResult[0].com, frameCom);
 	FrameData frameAlpha;
 	ovlib::Utils_Ov::mat2FrameData(_matResult[0].pha, frameAlpha);
-	results["com"] = frameCom;
-	results["pha"] = frameAlpha;
+	(*pResults)["com"] = frameCom;
+	(*pResults)["pha"] = frameAlpha;
 
 	return 0;
+}
+
+void MatterBackgroundV2Impl::run()
+{
+	long lSleep = 1;
+	while (!isInterrupted())
+	{
+		
+
+		std::chrono::milliseconds dura(lSleep);
+		std::this_thread::sleep_for(dura);
+	}
 }
