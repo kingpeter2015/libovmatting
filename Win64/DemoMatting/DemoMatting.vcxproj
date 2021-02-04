@@ -55,10 +55,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\inference_engine\include;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\inference_engine\external\tbb\include;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\ngraph\include;C:\Program Files (x86)\Intel\openvino_2021\opencv\include;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\ngraph\include\ngraph\frontend;..\..\include</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4244;4251;4267;4275;26451;26495;26812;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\inference_engine\lib\intel64\Debug;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\ngraph\lib;C:\Program Files (x86)\Intel\openvino_2021\opencv\lib;C:\Program Files (x86)\Intel\openvino_2021\inference_engine\external\tbb\lib;..\x64\Debug</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ovmatting.lib;inference_engined.lib;inference_engine_c_apid.lib;inference_engine_ir_readerd.lib;inference_engine_legacyd.lib;inference_engine_lp_transformationsd.lib;inference_engine_onnx_readerd.lib;inference_engine_preprocd.lib;inference_engine_transformationsd.lib;ngraphd.lib;onnx_importerd.lib;opencv_calib3d451d.lib;opencv_core451d.lib;opencv_dnn451d.lib;opencv_features2d451d.lib;opencv_flann451d.lib;opencv_gapi451d.lib;opencv_highgui451d.lib;opencv_imgcodecs451d.lib;opencv_imgproc451d.lib;opencv_ml451d.lib;opencv_objdetect451d.lib;opencv_photo451d.lib;opencv_stitching451d.lib;opencv_video451d.lib;opencv_videoio451d.lib;tbb.lib;tbbbind.lib;tbbmalloc.lib;tbbmalloc_proxy.lib;tbbproxy.lib;tbb_preview.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -69,15 +73,22 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\inference_engine\include;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\inference_engine\external\tbb\include;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\ngraph\include;C:\Program Files (x86)\Intel\openvino_2021\opencv\include;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\ngraph\include\ngraph\frontend;..\..\include;</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4244;4251;4267;4275;26451;26495;26812;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\inference_engine\lib\intel64\Release;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\ngraph\lib;C:\Program Files (x86)\Intel\openvino_2021\opencv\lib;C:\Program Files (x86)\Intel\openvino_2021\inference_engine\external\tbb\lib;..\x64\Release</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ovmatting.lib;inference_engine.lib;inference_engine_c_api.lib;inference_engine_ir_reader.lib;inference_engine_legacy.lib;inference_engine_lp_transformations.lib;inference_engine_onnx_reader.lib;inference_engine_preproc.lib;inference_engine_transformations.lib;ngraph.lib;onnx_importer.lib;opencv_calib3d451.lib;opencv_core451.lib;opencv_dnn451.lib;opencv_features2d451.lib;opencv_flann451.lib;opencv_gapi451.lib;opencv_highgui451.lib;opencv_imgcodecs451.lib;opencv_imgproc451.lib;opencv_ml451.lib;opencv_objdetect451.lib;opencv_photo451.lib;opencv_stitching451.lib;opencv_video451.lib;opencv_videoio451.lib;tbb.lib;tbbbind.lib;tbbmalloc.lib;tbbmalloc_proxy.lib;tbbproxy.lib;tbb_preview.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\main.cpp" />
+    <ClCompile Include="..\..\samples\inference_camera.cpp" />
+    <ClCompile Include="..\..\samples\inference_video.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

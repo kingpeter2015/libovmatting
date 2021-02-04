@@ -31,7 +31,7 @@ namespace ovlib
             METHOD_BACKGROUND_MATTING_V2 = 0x00
         };
 
-        struct OV_MATTER_API CRect
+        struct OV_MATTER_API Rect
         {
             int left;
             int top;
@@ -39,13 +39,26 @@ namespace ovlib
             int bottom;
         };
 
-        struct OV_MATTER_API CFrameData
+        struct OV_MATTER_API Shape
         {
-            unsigned char* pFrame;            
-            int height;
-            int width;
-            int channel;
-            int type;
+            unsigned int width;
+            unsigned int height;
+        };
+
+        enum OV_MATTER_API FRAME_FORMAT
+        {
+            FRAME_FOMAT_I420 = 0x00,
+            FRAME_FOMAT_BGR = 0x01,
+            FRAME_FOMAT_RGB = 0x02,
+            FRAME_FOMAT_GRAY = 0x03
+        };
+
+        struct OV_MATTER_API FrameData
+        {
+            unsigned char* frame;            
+            unsigned int height;
+            unsigned int width;
+            FRAME_FORMAT format;
             void* tag;
         };
 
@@ -58,11 +71,14 @@ namespace ovlib
             std::string path_to_bin;
             
             float scale;            
-            int maxBatchSize;
+            int max_batch_size;
 
-            int nCpuThreadsNum;    //default 0
-            bool bCpuBindThread; //default true
-            int nCpuThroughputStreams;    //default 1
+            int cpu_threads_num;    //default 0
+            bool cpu_bind_thread; //default true
+            int cpu_throughput_streams;    //default 1
+            bool is_async;
+
+            Shape input_shape;
         };
 
         class OV_MATTER_API MatterChannel
@@ -73,7 +89,7 @@ namespace ovlib
             static void destroyed(MatterChannel* pChan);
 
             virtual ~MatterChannel() {};
-            virtual int process(const std::vector<CFrameData>& images, std::map<std::string,CFrameData>& results) = 0;
+            virtual int process(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, std::map<std::string, FrameData>& results, const ovlib::matter::Shape& shape) = 0;
         };
     }; // namespace matter
 }; // namespace ovlib

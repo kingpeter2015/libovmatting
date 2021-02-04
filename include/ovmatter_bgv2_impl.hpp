@@ -41,11 +41,14 @@ namespace ovlib
 			MatterBackgroundV2Impl();
 			virtual ~MatterBackgroundV2Impl();
 			virtual bool init(const MatterParams& params);
-			virtual int process(const std::vector<CFrameData>& images, std::map<std::string, CFrameData>& results);
+			virtual int process(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, std::map<std::string, FrameData>& results, const ovlib::matter::Shape& shape);
+
 		private:
-			std::unique_ptr<CNN_Background_V2> _pCnn;
-			std::unique_ptr<CNNConfig> _pConfig;
+			std::unique_ptr< BaseAsyncCNN<MattingObject> > _pCnn;
 			bool _bInit;
+
+			cv::Mat _prevFrame;
+			MattingObjects _matResult;
 		};
 	}; // namespace matter
 }; // namespace ovlib

@@ -28,7 +28,7 @@ int MatterChannel::getDefMatterParams(MatterParams& params)
 	params.method = METHOD_BACKGROUND_MATTING_V2;
 	params.device = "CPU";
 	params.scale = 0.25;
-	params.maxBatchSize = 1;
+	params.max_batch_size = 1;
 #if (LINUX)
 	params.path_to_model = "./share/pytorch_mobilenetv2.xml";
 	params.path_to_bin = "./share/pytorch_mobilenetv2.bin";
@@ -36,9 +36,14 @@ int MatterChannel::getDefMatterParams(MatterParams& params)
 	params.path_to_model = ".\\share\\pytorch_mobilenetv2.xml";
 	params.path_to_bin = ".\\share\\pytorch_mobilenetv2.bin";
 #endif // _WIN
-	params.nCpuThreadsNum = 0;
-	params.bCpuBindThread = true;
-	params.nCpuThroughputStreams = 1;
+	params.cpu_threads_num = 0;
+	params.cpu_bind_thread = true;
+	params.cpu_throughput_streams = 1;
+
+	params.input_shape.width = 256;
+	params.input_shape.height = 144;
+
+	params.is_async = true;
 
 	return 0;	
 }

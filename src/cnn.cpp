@@ -20,32 +20,7 @@ const float meanValues[] = {static_cast<const float>(FLAGS_mean_val_r),
                                     static_cast<const float>(FLAGS_mean_val_b)};
                                     */
 
-FaceTimerCounter::FaceTimerCounter() {}
 
-FaceTimerCounter::~FaceTimerCounter()
-{
-}
-
-void FaceTimerCounter::Start()
-{
-    if(_started)
-    {
-        return;
-    }
-    _elapse = 0;
-    _start = std::chrono::high_resolution_clock::now();
-    _started = true;
-}
-
-int64_t FaceTimerCounter::Elapse()
-{
-    auto ckpnt = std::chrono::high_resolution_clock::now();
-    auto elapsed = ckpnt - _start;
-    _elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
-    _start = ckpnt;
-
-    return _elapse;
-}
 
 using namespace InferenceEngine;
 
@@ -77,8 +52,8 @@ void CnnDLSDKBase::Load()
         input_data->getPreProcess().setColorFormat(ColorFormat::RGB);
 
         SizeVector input_dims = input_data->getInputData()->getTensorDesc().getDims();
-        input_dims[3] = _config._shape.width;
-        input_dims[2] = _config._shape.height;
+        input_dims[3] = _config.input_shape.width;
+        input_dims[2] = _config.input_shape.height;
         _input_shapes[item.first] = input_dims;
     }
 
@@ -103,12 +78,12 @@ void CnnDLSDKBase::Load()
         }
     }
 
-    if (_config.networkCfg.nCpuThreadsNum > 0)
+    if (_config.cpu_threads_num > 0)
     {
         std::map<std::string, std::string> loadParams;
-        loadParams[PluginConfigParams::KEY_CPU_THREADS_NUM] = std::to_string(_config.networkCfg.nCpuThreadsNum);
-        loadParams[PluginConfigParams::KEY_CPU_BIND_THREAD] = _config.networkCfg.bCpuBindThread ? PluginConfigParams::YES : PluginConfigParams::NO;
-        loadParams[PluginConfigParams::KEY_CPU_THROUGHPUT_STREAMS] = std::to_string(_config.networkCfg.nCpuThroughputStreams);
+        loadParams[PluginConfigParams::KEY_CPU_THREADS_NUM] = std::to_string(_config.cpu_threads_num);
+        loadParams[PluginConfigParams::KEY_CPU_BIND_THREAD] = _config.cpu_bind_thread ? PluginConfigParams::YES : PluginConfigParams::NO;
+        loadParams[PluginConfigParams::KEY_CPU_THROUGHPUT_STREAMS] = std::to_string(_config.cpu_throughput_streams);
         _executable_network_ = _config.ie.LoadNetwork(_cnn_network_, _config.deviceName, loadParams); 
     }
     else
@@ -135,14 +110,14 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
         matFrame1 = frame.clone();
         unsigned char *dataMatFrame1 = matFrame1.data;
 
-        if (frame.rows != _config._shape.height || frame.cols != _config._shape.width)
+        if (frame.rows != _config.input_shape.height || frame.cols != _config.input_shape.width)
         {
-            cv::resize(frame, iFrame, _config._shape);
+            cv::resize(frame, iFrame, _config.input_shape);
         }
 
-        if (bgr.rows != _config._shape.height || bgr.cols != _config._shape.width)
+        if (bgr.rows != _config.input_shape.height || bgr.cols != _config.input_shape.width)
         {
-            cv::resize(bgr, iBgr, _config._shape);
+            cv::resize(bgr, iBgr, _config.input_shape);
         }
 
         matBgr = iBgr.clone();
@@ -156,7 +131,7 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
 
         //Benchmarking Input
         {
-            TimerCounter tCount("Phase1-Inputting");
+            ovlib::TimerCounter tCount("Phase1-Inputting");
             int count = -1;
             for (auto &blockName : vecBlockNames)
             {
@@ -190,13 +165,13 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
 
         //2.Infer
         {
-            TimerCounter tCount("Phase2-Infer()");
+            ovlib::TimerCounter tCount("Phase2-Infer()");
             _infer_request_.Infer();
         }
 
         //3.Output
         {
-            TimerCounter tCount("Phase3-Outputting");
+            ovlib::TimerCounter tCount("Phase3-Outputting");
             
             //3.1 get Alpha
             Blob::Ptr blobPha = _infer_request_.GetBlob("pha");
@@ -207,7 +182,7 @@ void MattingCNN::Compute2(const cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgr2, std
             size_t image_height = blobPha->getTensorDesc().getDims()[2];
             unsigned long image_size = image_width * image_height;
 
-            cv::Mat matPha = cv::Mat::zeros(_config._shape, CV_8UC1);
+            cv::Mat matPha = cv::Mat::zeros(_config.input_shape, CV_8UC1);
             cv::Mat matCom = cv::Mat::zeros(outp_shape, CV_8UC3);
             unsigned char *dataMatPha = matPha.data;
             unsigned char *dataMatCom = matCom.data;
@@ -287,14 +262,14 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
         matFrame1 = frame.clone();
         unsigned char *dataMatFrame1 = matFrame1.data;
 
-        if (frame.rows != _config._shape.height || frame.cols != _config._shape.width)
+        if (frame.rows != _config.input_shape.height || frame.cols != _config.input_shape.width)
         {
-            cv::resize(frame, iFrame, _config._shape);
+            cv::resize(frame, iFrame, _config.input_shape);
         }
 
-        if (bgr.rows != _config._shape.height || bgr.cols != _config._shape.width)
+        if (bgr.rows != _config.input_shape.height || bgr.cols != _config.input_shape.width)
         {
-            cv::resize(bgr, iBgr, _config._shape);
+            cv::resize(bgr, iBgr, _config.input_shape);
         }
 
         matBgr = iBgr.clone();
@@ -308,7 +283,7 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
 
         //Benchmarking Input
         {
-            TimerCounter tCount("Phase1-Inputting");
+            ovlib::TimerCounter tCount("Phase1-Inputting");
             int count = -1;
             for (auto &blockName : vecBlockNames)
             {
@@ -339,14 +314,14 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
 
         //2.Infer
         {
-            TimerCounter tCount("Phase2-Infer()");
+            ovlib::TimerCounter tCount("Phase2-Infer()");
             _infer_request_.Infer();
         }
 
         //3.Output
 
         {
-            TimerCounter tCount("Phase3-Outputting");
+            ovlib::TimerCounter tCount("Phase3-Outputting");
 
             //blobPha
             Blob::Ptr blobPha = _infer_request_.GetBlob("pha");
@@ -361,8 +336,8 @@ void MattingCNN::Compute(const cv::Mat &frame, cv::Mat &bgr, std::map<std::strin
             size_t image_height = blobPha->getTensorDesc().getDims()[2];
             unsigned long image_size = image_width * image_height;
 
-            cv::Mat matPha = cv::Mat::zeros(_config._shape, CV_8UC1);
-            cv::Mat matFgr = cv::Mat::zeros(_config._shape, CV_8UC3);
+            cv::Mat matPha = cv::Mat::zeros(_config.input_shape, CV_8UC1);
+            cv::Mat matFgr = cv::Mat::zeros(_config.input_shape, CV_8UC3);
             cv::Mat matCom = cv::Mat::zeros(outp_shape, CV_8UC3);
             cv::Mat matGreen(outp_shape, CV_8UC3, cv::Scalar(120, 255, 155));
             unsigned char *dataMatPha = matPha.data;
@@ -439,7 +414,7 @@ void MattingCNN::Compute_Alpha(const cv::Mat &frame, cv::Mat &bgr, std::map<std:
 
         //Benchmarking Input
         {
-            TimerCounter tCount("Phase1-Getting Alpha");
+            ovlib::TimerCounter tCount("Phase1-Getting Alpha");
             cv::bitwise_xor(frame, bgr, matPha);
             cv::bitwise_and(frame, matPha, matFgr);
         }
@@ -448,7 +423,7 @@ void MattingCNN::Compute_Alpha(const cv::Mat &frame, cv::Mat &bgr, std::map<std:
         //3.Output
 
         {
-            TimerCounter tCount("Phase3-Outputting");   
+            ovlib::TimerCounter tCount("Phase3-Outputting");
 
             (*result)["com"] = matCom;
             (*result)["fgr"] = matFgr;

@@ -60,7 +60,7 @@
       <AdditionalIncludeDirectories>C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\inference_engine\include;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\inference_engine\external\tbb\include;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\ngraph\include;C:\Program Files (x86)\Intel\openvino_2021\opencv\include;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\ngraph\include\ngraph\frontend;..\..\include</AdditionalIncludeDirectories>
       <LanguageStandard>Default</LanguageStandard>
       <LanguageStandard_C>Default</LanguageStandard_C>
-      <DisableSpecificWarnings>4244;4251;4267;4275;26495;26812;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4244;4251;4267;4275;26451;26495;26812;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -81,7 +81,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\inference_engine\include;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\inference_engine\external\tbb\include;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\ngraph\include;C:\Program Files (x86)\Intel\openvino_2021\opencv\include;C:\Program Files (x86)\Intel\openvino_2021\deployment_tools\ngraph\include\ngraph\frontend;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4244;4251;4267;4275;26495;26812;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4244;4251;4267;4275;26451;26495;26812;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -96,7 +96,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\include\cnn.hpp" />
     <ClInclude Include="..\..\include\common.hpp" />
-    <ClInclude Include="..\..\include\ext_ops.hpp" />
     <ClInclude Include="..\..\include\cnn_backgroundv2.hpp" />
     <ClInclude Include="..\..\include\ns_bmp.hpp" />
     <ClInclude Include="..\..\include\ns_register.hpp" />
@@ -110,7 +109,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\cnn.cpp" />
-    <ClCompile Include="..\..\src\ext_ops.cpp" />
     <ClCompile Include="..\..\src\cnn_backgroundv2.cpp" />
     <ClCompile Include="..\..\src\ns_bmp.cpp" />
     <ClCompile Include="..\..\src\ns_register.cpp" />

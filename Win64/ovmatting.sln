@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.30804.86
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DemoMatting", "DemoMatting\DemoMatting.vcxproj", "{2FAEA063-7FB6-4695-8471-42C5353C965C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{01F0A09C-F8D2-418F-981B-0E2DAFB14A01} = {01F0A09C-F8D2-418F-981B-0E2DAFB14A01}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ovmatting", "ovmatting\ovmatting.vcxproj", "{01F0A09C-F8D2-418F-981B-0E2DAFB14A01}"
 EndProject

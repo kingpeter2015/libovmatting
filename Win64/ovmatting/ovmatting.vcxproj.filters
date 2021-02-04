@@ -23,9 +23,6 @@
     <ClInclude Include="..\..\include\common.hpp">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\ext_ops.hpp">
-      <Filter>headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\ns_bmp.hpp">
       <Filter>headers</Filter>
     </ClInclude>
@@ -65,9 +62,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\cnn.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\ext_ops.cpp">
       <Filter>source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\ns_bmp.cpp">

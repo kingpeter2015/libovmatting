@@ -27,7 +27,7 @@
 
 #define NS_USE_OPENCV 1
 
-namespace ns_utils_my
+namespace ovlib
 {
 
     /**
@@ -236,14 +236,14 @@ namespace ns_utils_my
         }
     };
 
-} // namespace ns_utils_my
+} // namespace ovlib
 
 
 /**
  * \brief Function for create reader
  * @return FormatReader pointer
  */
-FORMAT_READER_API(ns_utils_my::Reader *)
+FORMAT_READER_API(ovlib::Reader *)
 CreateFormatReader(const char *filename);
 
 #endif

@@ -1,4 +1,10 @@
 #include "samples.hpp"
+#include "ns_utils.hpp"
+#include <inference_engine.hpp>
+
+using namespace InferenceEngine;
+
+using namespace ovlib::matter;
 
 static void InitWindows()
 {
@@ -10,81 +16,103 @@ static void InitWindows()
     cv::namedWindow("pha", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
     cv::resizeWindow("pha", width, height);
     cv::moveWindow("pha", 650, 0);
-    //cv::namedWindow("fgr", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
-    //cv::resizeWindow("fgr", width, height);
-    //cv::moveWindow("com", 0, 500);
 }
 
 void Inference_Video()
 {
-    std::string model = "../share/pytorch_mobilenetv2.xml";
-    std::string bin = "../share/pytorch_mobilenetv2.bin";
-    std::string src = "../share/src.mp4";
-    std::string bgr = "../share/src.png";
-    cv::Size shape;
-    shape.width = 360;
-    shape.height = 180;
-    cv::Size out_shape;
-    out_shape.width = 1920;
-    out_shape.height = 1080;
-    CnnConfig config(model, bin, shape);
-    config.networkCfg.nCpuThreadsNum = 0;
-    config.networkCfg.nCpuThroughputStreams = 1;
-    MattingCNN net(config);
+    
+#ifdef _MSC_VER
+    std::string model = ".\\share\\pytorch_mobilenetv2.xml";
+    std::string bin = ".\\share\\pytorch_mobilenetv2.bin";
+    std::string src = ".\\share\\src.mp4";
+    std::string bgr = ".\\share\\src.png";
+    std::string bgr2 = ".\\share\\replace.jpg";
+#else
+    std::string model = "./share/pytorch_mobilenetv2.xml";
+    std::string bin = "./share/pytorch_mobilenetv2.bin";
+    std::string src = "./share/src.mp4";
+    std::string bgr = "./share/src.png";
+    std::string bgr2 = "./share/replace.jpg";
+#endif //  WINDOWS
+
+    ovlib::matter::Shape in_shape, out_shape;
+    in_shape.width = 320;
+    in_shape.height = 180;
+    out_shape.width = 1280;
+    out_shape.height = 720;
+
+    ovlib::matter::MatterParams params;
+    ovlib::matter::MatterChannel::getDefMatterParams(params);
+    params.input_shape = in_shape;
+    params.path_to_model = model;
+    params.path_to_bin = bin;
+    params.method = ovlib::matter::METHOD_BACKGROUND_MATTING_V2;
+    MatterChannel* pChan = MatterChannel::create(params);
+    if (!pChan)
+    {
+        std::cout << "Can not create Matter Channel." << std::endl;
+
+        return;
+    }
 
     InitWindows();
 
     cv::VideoCapture capture0(src);
 
     int framecnt = 0;
-    int nDelay = 5;
-    cv::Mat bgrFrame;
+    int nDelay = 1;
+    cv::Mat frame, bgrFrame, bgrFrame2;
+    cv::Mat matCom, matPha;
     bgrFrame = cv::imread(bgr);
-    std::map<std::string, cv::Mat> output;
-    cv::Mat frame, frame_com, frame_fgr, frame_pha, frame_green;
-    FaceTimerCounter timercounter;
+    bgrFrame2 = cv::imread(bgr2);
+    std::map<std::string, ovlib::matter::FrameData> output;
+    ovlib::matter::FrameData frame_com, frame_pha;
+    ovlib::FaceTimerCounter timercounter;
+    timercounter.Start();
     double lElapse = 0;
 
     while (1)
     {
         if (!capture0.isOpened())
         {
-
-            std::cout << "Video Capture Fail" << std::endl;
             break;
         }
-        else
+
+        capture0 >> frame;
+        if (frame.empty())
         {
-
-            capture0 >> frame;
-            if (frame.empty())
-            {
-                std::cout << "frame.empty(): Finished" << std::endl;
-                break;
-            }
-            framecnt++;
-            {
-                timercounter.Start();
-                TimerCounter estimate("Phase...");
-                net.Compute(frame, bgrFrame, &output, out_shape);
-                //net.Compute_Alpha(frame, bgrFrame, &output, shape);
-                lElapse += timercounter.Elapse();
-                std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;
-            }
-
-            frame_com = output["com"];
-            frame_pha = output["pha"];
-
-            cv::imshow("com", frame_com);
-            cv::imshow("pha", frame_pha);
+            break;
         }
+
+        framecnt++;
+        {
+            ovlib::TimerCounter estimate("Phase...");
+            FrameData frame_main;
+            ovlib::Utils_Ov::mat2FrameData(frame, frame_main);
+            FrameData frame_bgr;
+            ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr);
+            FrameData frame_bgr_replace;
+            ovlib::Utils_Ov::mat2FrameData(bgrFrame2, frame_bgr_replace);
+
+            pChan->process(frame_main, frame_bgr, frame_bgr_replace, output, out_shape);
+            lElapse += timercounter.Elapse();
+            std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;
+        }
+
+        frame_com = output["com"];
+        frame_pha = output["pha"];
+        ovlib::Utils_Ov::frameData2Mat(frame_com, matCom);
+        ovlib::Utils_Ov::frameData2Mat(frame_pha, matPha);
+
+        cv::imshow("com", matCom);
+        cv::imshow("pha", matPha);
         char c = cv::waitKey(nDelay);
         if (c == 'c')
         {
             break;
         }
     }
-    std::cout << "Speed:" << lElapse / framecnt << " FPS" << std::endl;
+    std::cout << "Speed:" << framecnt * 1000 / (lElapse) << " FPS" << std::endl;
     capture0.release();
     cv::destroyAllWindows();
 }

@@ -7,12 +7,71 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
-namespace ns_utils_my
+#include <memory>
+
+#include <functional>
+#include <chrono>
+#include <time.h>
+
+#include "ovmatter.h"
+
+namespace ovlib
 {
-    class Utils_String
+    class OV_MATTER_API Utils_String
     {
     public:
         static std::vector<std::string> split(const std::string &s, char delim);
+    };
+
+
+    class OV_MATTER_API TimerCounter
+    {
+    public:
+        TimerCounter(std::string name)
+        {
+            _name = name;
+            _start = std::chrono::high_resolution_clock::now();
+        }
+        ~TimerCounter()
+        {
+            auto elapsed = std::chrono::high_resolution_clock::now() - _start;
+#if (LINUX)
+            _elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+#else
+            _elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+#endif // _WIN
+
+
+            std::cout << "Benchmarking " << _name << "\t\t| elapse miliseconds: " << _elapse / 1.0 << ",\t estimate fps: " << 1000.0 / _elapse << std::endl;
+        }
+    private:
+        std::string _name;
+#if (LINUX)
+        std::chrono::_V2::system_clock::time_point _start;
+#elif (_MSC_VER)
+        std::chrono::time_point<std::chrono::steady_clock> _start;
+#endif // _WIN
+
+        int64_t _elapse;
+        bool _started = false;
+    };
+
+    class OV_MATTER_API FaceTimerCounter
+    {
+    public:
+        FaceTimerCounter();
+        virtual ~FaceTimerCounter();
+        void Start();
+        int64_t Elapse();
+
+    private:
+#if (LINUX)
+        std::chrono::_V2::system_clock::time_point _start;
+#elif (_MSC_VER)
+        std::chrono::time_point<std::chrono::steady_clock> _start;
+#endif // _WIN
+        int64_t _elapse;
+        bool _started = false;
     };
 
     namespace slog
@@ -22,7 +81,7 @@ namespace ns_utils_my
         * @class LogStreamEndLine
         * @brief The LogStreamEndLine class implements an end line marker for a log stream
         */
-        class LogStreamEndLine
+        class OV_MATTER_API LogStreamEndLine
         {
         };
 
@@ -32,7 +91,7 @@ namespace ns_utils_my
         * @class LogStreamBoolAlpha
         * @brief The LogStreamBoolAlpha class implements bool printing for a log stream
         */
-        class LogStreamBoolAlpha
+        class OV_MATTER_API LogStreamBoolAlpha
         {
         };
 
@@ -42,7 +101,7 @@ namespace ns_utils_my
         * @class LogStream
         * @brief The LogStream class implements a stream for sample logging
         */
-        class LogStream
+        class OV_MATTER_API LogStream
         {
             std::string _prefix;
             std::ostream *_log_stream;
@@ -98,12 +157,14 @@ namespace ns_utils_my
         static LogStream err("ERROR", std::cerr);
     } // namespace slog
 
-    class Utils_Ov
+    class OV_MATTER_API Utils_Ov
     {
     public:
         static std::string getMatType(const cv::Mat& img, bool more_info=true);
         static void showImage(cv::Mat& img, std::string& title);
+        static void frameData2Mat(matter::FrameData& frameData, cv::Mat& outMat);
+        static void mat2FrameData(cv::Mat& mat, matter::FrameData& frameData);
     };
-} // namespace ns_utils_my
+} // namespace ovlib
 
 #endif

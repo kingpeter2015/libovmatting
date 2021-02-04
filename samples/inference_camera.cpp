@@ -1,9 +1,16 @@
 #include "samples.hpp"
+#include "ns_utils.hpp"
+
+#include <inference_engine.hpp>
+
+using namespace InferenceEngine;
+
+using namespace ovlib::matter;
 
 static void InitWindows()
 {
-    int width = 640;
-    int height = 480;
+    int width = 1280;
+    int height = 720;
     cv::namedWindow("com", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
     cv::resizeWindow("com", width, height);
     cv::moveWindow("com", 0, 0);
@@ -14,22 +21,39 @@ static void InitWindows()
 
 void Inference_Camera()
 {
-    std::string model = "../share/pytorch_mobilenetv2.xml";
-    std::string bin = "../share/pytorch_mobilenetv2.bin";
-    std::string src = "../share/src.mp4";
-    std::string bgr = "../share/src.png";
-    std::string bgr2 = "../share/replace.jpg";
-    cv::Size shape;
-    shape.width = 320;
-    shape.height = 180;
-    cv::Size out_shape;
+#ifdef _MSC_VER
+    std::string model = ".\\share\\pytorch_mobilenetv2.xml";
+    std::string bin = ".\\share\\pytorch_mobilenetv2.bin";
+    std::string src = ".\\share\\src.mp4";
+    std::string bgr = ".\\share\\src.png";
+    std::string bgr2 = ".\\share\\replace.jpg";
+#else
+    std::string model = "./share/pytorch_mobilenetv2.xml";
+    std::string bin = "./share/pytorch_mobilenetv2.bin";
+    std::string src = "./share/src.mp4";
+    std::string bgr = "./share/src.png";
+    std::string bgr2 = "./share/replace.jpg";
+#endif //  WINDOWS
+    ovlib::matter::Shape in_shape, out_shape;
+    in_shape.width = 256;
+    in_shape.height = 144;
     out_shape.width = 1280;
     out_shape.height = 720;
-    CnnConfig config(model, bin, shape);
-    config.networkCfg.nCpuThreadsNum = 0;
-    config.networkCfg.nCpuThroughputStreams = 1;
-    //config.deviceName = "GPU";
-    MattingCNN net(config);
+
+    ovlib::matter::MatterParams params;
+    ovlib::matter::MatterChannel::getDefMatterParams(params);
+    params.input_shape = in_shape;
+    params.path_to_model = model;
+    params.path_to_bin = bin;
+    params.method = ovlib::matter::METHOD_BACKGROUND_MATTING_V2;
+    params.is_async = true;
+    MatterChannel* pChan = MatterChannel::create(params);
+    if (!pChan)
+    {
+        std::cout << "Can not create Matter Channel." << std::endl;
+
+        return;
+    }
 
     InitWindows();
 
@@ -37,12 +61,13 @@ void Inference_Camera()
 
     int framecnt = 0;
     int nDelay = 1;
-    cv::Mat bgrFrame, bgrFrame2;
+    cv::Mat frame, bgrFrame, bgrFrame2;
+    cv::Mat matCom, matPha;
     bgrFrame = cv::imread(bgr);
     bgrFrame2 = cv::imread(bgr2);
-    std::map<std::string, cv::Mat> output;
-    cv::Mat frame, frame_com, frame_fgr, frame_pha, frame_green;
-    FaceTimerCounter timercounter;
+    std::map<std::string, ovlib::matter::FrameData> output;
+    ovlib::matter::FrameData frame_com, frame_pha;
+    ovlib::FaceTimerCounter timercounter;
     timercounter.Start();
     double lElapse = 0;
 
@@ -60,18 +85,27 @@ void Inference_Camera()
         }
         
         framecnt++;
-        {            
-            TimerCounter estimate("Phase...");
-            net.Compute2(frame, bgrFrame, bgrFrame2, &output, out_shape);
+        //{            
+            ovlib::TimerCounter estimate("Phase...");
+            FrameData frame_main;
+            ovlib::Utils_Ov::mat2FrameData(frame, frame_main);
+            FrameData frame_bgr;
+            ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr);
+            FrameData frame_bgr_replace;
+            ovlib::Utils_Ov::mat2FrameData(bgrFrame2, frame_bgr_replace);
+
+            pChan->process(frame_main, frame_bgr, frame_bgr_replace, output, out_shape);
             lElapse += timercounter.Elapse();
             std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;
-        }
+        //}
 
         frame_com = output["com"];
         frame_pha = output["pha"];
+        ovlib::Utils_Ov::frameData2Mat(frame_com, matCom);
+        ovlib::Utils_Ov::frameData2Mat(frame_pha, matPha);
 
-        cv::imshow("com", frame_com);
-        cv::imshow("pha", frame_pha);
+        cv::imshow("com", matCom);
+        cv::imshow("pha", matPha);
         char c = cv::waitKey(nDelay);
         if (c == 'c')
         {

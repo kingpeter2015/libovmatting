@@ -13,70 +13,12 @@
 #include <inference_engine.hpp>
 #include <ie_common.h>
 
-
-class TimerCounter
-{
-public:
-    TimerCounter(std::string name)
-    {
-        _name = name;
-        _start = std::chrono::high_resolution_clock::now();
-    }
-    ~TimerCounter()
-    {
-        auto elapsed = std::chrono::high_resolution_clock::now() - _start;
-#if (LINUX)
-		_elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
-#else
-		_elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
-#endif // _WIN
-
-        
-        std::cout << "Benchmarking " << _name <<"\t\t| elapse miliseconds: " << _elapse / 1.0 << ",\t estimate fps: " << 1000.0/_elapse << std::endl;
-    }
-private:
-    std::string _name;
-#if (LINUX)
-	std::chrono::_V2::system_clock::time_point _start;
-#elif (_MSC_VER)
-	std::chrono::time_point<std::chrono::steady_clock> _start;
-#endif // _WIN
-    
-    int64_t _elapse;
-    bool _started = false;
-};
-
-class FaceTimerCounter
-{
-public:
-  FaceTimerCounter();
-  virtual ~FaceTimerCounter();
-  void Start();
-  int64_t Elapse();
-
-private:
-#if (LINUX)
-	std::chrono::_V2::system_clock::time_point _start;
-#elif (_MSC_VER)
-	std::chrono::time_point<std::chrono::steady_clock> _start;
-#endif // _WIN
-  int64_t _elapse;
-  bool _started = false;
-};
-
-struct CNetWorkCPUConfig
-{
-    int nCpuThreadsNum = 0;        //default 0
-    bool bCpuBindThread = true;       //default true
-    int nCpuThroughputStreams = 1; //default 1
-};
-
 /**
 * @brief Base class of config for network
 */
 struct CNNConfig
 {
-    explicit CNNConfig(const std::string &path_to_model, const std::string &bin, const cv::Size shape=cv::Size(1920,1080)) : path_to_model(path_to_model), path_to_bin(bin), _shape(shape){}
+    explicit CNNConfig(const std::string &path_to_model, const std::string &bin, const cv::Size shape=cv::Size(256,144)) : path_to_model(path_to_model), path_to_bin(bin), input_shape(shape){}
 
     /** @brief Path to model description */
     std::string path_to_model;
@@ -89,10 +31,12 @@ struct CNNConfig
     InferenceEngine::Core ie;
     /** @brief Device name */
     std::string deviceName{"CPU"};
-    CNetWorkCPUConfig networkCfg;
     
     bool is_async{true};
-    cv::Size _shape = cv::Size(1920, 1080);
+    cv::Size input_shape;
+    int cpu_threads_num;    //default 0
+    bool cpu_bind_thread; //default true
+    int cpu_throughput_streams;    //default 1
 };
 
 /**
@@ -167,7 +111,7 @@ class AsyncAlgorithm
 {
 public:
     virtual ~AsyncAlgorithm() {}
-    virtual void enqueue(const cv::Mat &frame, const cv::Mat& image) = 0;
+    virtual void enqueue(const cv::Mat& frame, const cv::Mat& bgr, const cv::Mat& bgrReplace, const cv::Size& out_shape) = 0;
     virtual void submitRequest() = 0;
     virtual void wait() = 0;
     virtual void printPerformanceCounts(const std::string &fullDeviceName) = 0;
@@ -179,11 +123,11 @@ class BaseAsyncCNN : public AsyncAlgorithm<T>
 {
 protected:
     InferenceEngine::InferRequest::Ptr request;
-    const bool isAsync;
+    bool isAsync;
     std::string topoName;
 
 public:
-    explicit BaseAsyncCNN(std::string name, bool isAsync = false) : topoName(name), isAsync(isAsync) {}
+    BaseAsyncCNN(){}
 
     void submitRequest() override
     {

@@ -3,7 +3,7 @@
 #include "ns_bmp.hpp"
 
 using namespace std;
-using namespace ns_utils_my;
+using namespace ovlib;
 
 /***************************************MnistUbyte*******************************************************************/
 int MnistUbyte::reverseInt(int i)

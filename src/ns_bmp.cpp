@@ -4,7 +4,7 @@
 #include <iostream>
 
 using namespace std;
-using namespace ns_utils_my;
+using namespace ovlib;
 
 BitMap::BitMap(const string &filename)
 {

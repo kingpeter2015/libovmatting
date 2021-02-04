@@ -7,7 +7,7 @@
 #include "ns_register.hpp"
 
 
-namespace ns_utils_my {
+namespace ovlib {
 /**
  * \class BitMap
  * \brief Reader for bmp files
@@ -65,6 +65,6 @@ public:
         return _data;
     }
 };
-}  // namespace ns_utils_my
+}  // namespace ovlib
 
 #endif
