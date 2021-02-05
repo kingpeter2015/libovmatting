@@ -31,6 +31,7 @@ SOFTWARE.
 #include "ovmatter_base_impl.hpp"
 #include "cnn_backgroundv2.hpp"
 #include "ns_thread.hpp"
+#include "ns_utils.hpp"
 
 namespace ovlib
 {
@@ -45,13 +46,18 @@ namespace ovlib
 			/***for MatterBaseImpl*****/
 			virtual bool init(const MatterParams& params) override;
 			virtual int process(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape, std::map<std::string, FrameData>* pResults = 0) override;
+			virtual void setStrategy_async(bool bAuto = true, int interval = 0, const Shape& input_shape = { 0,0 }, const Shape& out_shape = { 0,0 }) override;
+			virtual void setBackground_async(FrameData& bgrReplace, MATTER_EFFECT = EFFECT_NONE, const FrameData& bgr = { 0, 0, 0, FRAME_FOMAT_BGR, 0 }) override;
+			virtual int process_async(FrameData& frame, FrameData& frameCom, FrameData& frameAlpha) override;
 
 			/***for ov_simple_thread***/
 			virtual void run() override;
 
 		private:
 			int doWork_sync(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape, std::map<std::string, FrameData>* pResults);
-			int doWork_async(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape);
+			int doWork_sync_V2(cv::Mat& frame, cv::Mat& bgr, cv::Mat& bgrReplace, cv::Size& out_shape, cv::Mat& matCom, cv::Mat& matAlpha);
+			void compose(cv::Mat& src, cv::Mat& replace, cv::Mat& alpha, cv::Mat& com, cv::Size& out_shape);
+
 		private:			
 			std::unique_ptr<CNN_Background_V2> _pCnn;
 
@@ -59,6 +65,20 @@ namespace ovlib
 
 			cv::Mat _prevFrame;
 			MattingObjects _matResult;
+
+		private: /****for asynchronous*****/
+			ovlib::MatterBencher _bencher;
+			long long _elapse;
+			mutable std::mutex mutex_;
+			ConcurrentQueue<cv::Mat> _queue_input;
+			ConcurrentQueue<MattingObject> _queue_output;
+			cv::Mat _frame_bgr;
+			cv::Mat _frame_replace;
+			MATTER_EFFECT _effect;
+			cv::Size _shape_input;
+			cv::Size _shape_output;
+			int _interval;
+
 		};
 	}; // namespace matter
 }; // namespace ovlib

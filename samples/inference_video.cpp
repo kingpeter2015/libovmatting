@@ -46,8 +46,8 @@ void Inference_Video()
     params.path_to_model = model;
     params.path_to_bin = bin;
     params.method = ovlib::matter::METHOD_BACKGROUND_MATTING_V2;
-    params.is_async = true;
-    params.effect = ovlib::matter::EFFECT_BLUR;
+    params.is_async = false;
+    //params.effect = ovlib::matter::EFFECT_BLUR;
     MatterChannel* pChan = MatterChannel::create(params);
     if (!pChan)
     {
@@ -68,7 +68,7 @@ void Inference_Video()
     bgrFrame2 = cv::imread(bgr2);
     std::map<std::string, ovlib::matter::FrameData> output;
     ovlib::matter::FrameData frame_com, frame_pha;
-    ovlib::FaceTimerCounter timercounter;
+    ovlib::MatterBencher timercounter;
     timercounter.Start();
     double lElapse = 0;
 
@@ -86,7 +86,7 @@ void Inference_Video()
         }
 
         framecnt++;
-        //{            
+        {            
         ovlib::TimerCounter estimate("Phase...");
         FrameData frame_main;
         ovlib::Utils_Ov::mat2FrameData(frame, frame_main);
@@ -99,7 +99,7 @@ void Inference_Video()
         pChan->process(frame_main, frame_bgr, frame_bgr_replace, out_shape, &output);
         lElapse += timercounter.Elapse();
         std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;
-        //}
+        }
 
         frame_com = output["com"];
         frame_pha = output["pha"];

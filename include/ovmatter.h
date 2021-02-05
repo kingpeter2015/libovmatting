@@ -68,9 +68,6 @@ namespace ovlib
             void* tag;
         };
 
-        //callback function for asynchronous process
-        typedef void (*asynProcessCB)(FrameData& frame_com, FrameData& frame_alpha);
-
         struct OV_MATTER_API MatterParams
         {       
             MattingMethod method;
@@ -87,7 +84,6 @@ namespace ovlib
             bool cpu_bind_thread; //default true
             int cpu_throughput_streams;    //default 1
 
-            asynProcessCB fnCb;
             bool is_async;
 
             Shape input_shape;
@@ -102,7 +98,12 @@ namespace ovlib
             static void destroyed(MatterChannel* pChan);
 
             virtual ~MatterChannel() {};
+            
             virtual int process(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape, std::map<std::string, FrameData>* pResults = 0) = 0;
+
+            virtual void setStrategy_async(bool bAuto = true, int interval = 0, const Shape& input_shape = { 0,0 }, const Shape& out_shape = {0,0}) = 0;
+            virtual void setBackground_async(FrameData& bgrReplace, MATTER_EFFECT = EFFECT_NONE, const FrameData& bgr = { 0, 0, 0, FRAME_FOMAT_BGR, 0 }) = 0;
+            virtual int process_async(FrameData& frame, FrameData& frameCom, FrameData& frameAlpha) = 0;
         };
     }; // namespace matter
 }; // namespace ovlib

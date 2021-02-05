@@ -15,22 +15,32 @@
 
 using namespace InferenceEngine;
 
-CNN_Background_V2::CNN_Background_V2(const CNNConfig& config) : _config(config), _bEnqueue(false)
+CNN_Background_V2::CNN_Background_V2(const CNNConfig& config) : _config(config), _bBgr(false)
 {
     topoName = "CNN_Background_V2";
     isAsync = config.is_async;
 
-    auto cnnNetwork = _config.ie.ReadNetwork(_config.path_to_model, _config.path_to_bin);
+    cnn_network_ = _config.ie.ReadNetwork(_config.path_to_model, _config.path_to_bin);
 
-    InferenceEngine::InputsDataMap inputInfo = cnnNetwork.getInputsInfo();
-    const int currentBatchSize = cnnNetwork.getBatchSize();
+    load();
+}
+
+bool CNN_Background_V2::isBgrEnqueued()
+{
+    return _bBgr;
+}
+
+void CNN_Background_V2::load()
+{
+    InferenceEngine::InputsDataMap inputInfo = cnn_network_.getInputsInfo();
+    const int currentBatchSize = cnn_network_.getBatchSize();
     if (currentBatchSize != _config.max_batch_size)
     {
-        cnnNetwork.setBatchSize(_config.max_batch_size);
+        cnn_network_.setBatchSize(_config.max_batch_size);
     }
 
     int nInputInfoSize = inputInfo.size();
-    auto inInfo = cnnNetwork.getInputsInfo();
+    auto inInfo = cnn_network_.getInputsInfo();
     std::map<std::string, InferenceEngine::SizeVector> input_shapes;
     for (auto& item : inInfo)
     {
@@ -45,9 +55,9 @@ CNN_Background_V2::CNN_Background_V2(const CNNConfig& config) : _config(config),
         input_dims[2] = _config.input_shape.height;
         input_shapes[item.first] = input_dims;
     }
-    cnnNetwork.reshape(input_shapes);
+    cnn_network_.reshape(input_shapes);
 
-    InferenceEngine::OutputsDataMap outputInfo = cnnNetwork.getOutputsInfo();
+    InferenceEngine::OutputsDataMap outputInfo = cnn_network_.getOutputsInfo();
     for (auto& item : outputInfo)
     {
         item.second->setPrecision(Precision::FP32);
@@ -68,99 +78,90 @@ CNN_Background_V2::CNN_Background_V2(const CNNConfig& config) : _config(config),
         loadParams[PluginConfigParams::KEY_CPU_THREADS_NUM] = std::to_string(_config.cpu_threads_num);
         loadParams[PluginConfigParams::KEY_CPU_BIND_THREAD] = _config.cpu_bind_thread ? PluginConfigParams::YES : PluginConfigParams::NO;
         loadParams[PluginConfigParams::KEY_CPU_THROUGHPUT_STREAMS] = std::to_string(_config.cpu_throughput_streams);
-        net_ = _config.ie.LoadNetwork(cnnNetwork, _config.deviceName, loadParams);
+        net_ = _config.ie.LoadNetwork(cnn_network_, _config.deviceName, loadParams);
     }
     else
     {
-        net_ = _config.ie.LoadNetwork(cnnNetwork, _config.deviceName);
+        net_ = _config.ie.LoadNetwork(cnn_network_, _config.deviceName);
     }
+
+    request = net_.CreateInferRequestPtr();
+
+    _bBgr = false;
+}
+
+void CNN_Background_V2::reshape(cv::Size input_shape)
+{
+    _config.input_shape = input_shape;
+    load();
 }
 
 void CNN_Background_V2::submitRequest()
 {
-    if (!_bEnqueue)
+    if (!request)
     {
         return;
     }
-    _frame_count++;
+
     BaseAsyncCNN<MattingObject>::submitRequest();
 }
 
-void CNN_Background_V2::enqueue(const cv::Mat& frame, const cv::Mat& bgr, const cv::Mat& bgrReplace, const cv::Size& out_shape)
+void CNN_Background_V2::enqueue(const std::string& name, const cv::Mat& frame)
 {
     if (!request)
     {
-        request = net_.CreateInferRequestPtr();
+        return;
     }
 
+    cv::Mat matFrame = frame.clone();
+    if (matFrame.rows != _config.input_shape.height || matFrame.cols != _config.input_shape.width)
+    {
+        cv::resize(matFrame, matFrame, _config.input_shape);
+    }
+    unsigned char* dataMatFrame = matFrame.data;
+
+    Blob::Ptr blob = request->GetBlob(name);
+    auto data = blob->buffer().as<PrecisionTrait<Precision::FP32>::value_type*>();
+    if (data == nullptr)
+    {
+        std::string errorName = "Input blob (" + name;
+        errorName += ") has not allocated buffer";
+        throw std::runtime_error(errorName);
+        //throw std::runtime_error("Input blob has not allocated buffer");
+    }
+    size_t num_channels = blob->getTensorDesc().getDims()[1];
+    size_t image_width = blob->getTensorDesc().getDims()[3];
+    size_t image_height = blob->getTensorDesc().getDims()[2];
+    size_t image_size = image_width * image_height;
+
+    unsigned char* imagesData = matFrame.data;
+
+    /** Iterate over all pixel in image (b,g,r) **/
+    for (size_t pid = 0; pid < image_size; pid++)
+    {
+        /** Iterate over all channels **/
+        int numC = pid * num_channels;
+        *(data + pid) = *(imagesData + numC + 2) / 255.0f;
+        *(data + image_size + pid) = *(imagesData + numC + 1) / 255.0f;
+        *(data + image_size + image_size + pid) = *(imagesData + numC) / 255.0f;
+    }
+
+    if (name == "bgr")
+    {
+        _bBgr = true;
+    }
+}
+
+void CNN_Background_V2::enqueueAll(const cv::Mat& frame, const cv::Mat& bgr)
+{
     try
     {
         //1.init fields
-        _frame = frame.clone();
-        _bgr = bgr.clone();
-        
-        _bgrReplace = bgrReplace.clone();
-        if (_config.effect == ovlib::matter::EFFECT_BLUR)
-        {
-            cv::bilateralFilter(bgrReplace, _bgrReplace, 30, 500, 5);
-        }
-
-        _out_shape = out_shape;
-
-        //2. Input
-        cv::Mat matFrame = _frame.clone();
-        cv::Mat matBgr = _bgr.clone();
-        if (matFrame.rows != _config.input_shape.height || matFrame.cols != _config.input_shape.width)
-        {
-            cv::resize(matFrame, matFrame, _config.input_shape);
-        }
-
-        if (matBgr.rows != _config.input_shape.height || matBgr.cols != _config.input_shape.width)
-        {
-            cv::resize(matBgr, matBgr, _config.input_shape);
-        }
-
-        std::vector<std::string> vecBlockNames;
-        vecBlockNames.emplace_back("src");
-        vecBlockNames.emplace_back("bgr");
-
-        unsigned char* dataSrc = (matFrame.data);
-        unsigned char* dataBgr = (matBgr.data);
-        int count = -1;
-        for (auto& blockName : vecBlockNames)
-        {
-            count++;
-
-            Blob::Ptr blob = request->GetBlob(blockName);
-            auto data = blob->buffer().as<PrecisionTrait<Precision::FP32>::value_type*>();
-            if (data == nullptr)
-            {
-                throw std::runtime_error("Input blob has not allocated buffer");
-            }
-            size_t num_channels = blob->getTensorDesc().getDims()[1];
-            size_t image_width = blob->getTensorDesc().getDims()[3];
-            size_t image_height = blob->getTensorDesc().getDims()[2];
-            size_t image_size = image_width * image_height;
-
-            /** Iterate over all input images **/
-            unsigned char* imagesData = count == 0 ? dataSrc : dataBgr;
-
-            /** Iterate over all pixel in image (b,g,r) **/
-            for (size_t pid = 0; pid < image_size; pid++)
-            {
-                /** Iterate over all channels **/
-                int numC = pid * num_channels;
-                *(data + pid) = *(imagesData + numC + 2) / 255.0f;
-                *(data + image_size + pid) = *(imagesData + numC + 1) / 255.0f;
-                *(data + image_size + image_size + pid) = *(imagesData + numC) / 255.0f;
-            }
-        }
-
-        _bEnqueue = true;
+        enqueue("src", frame);
+        enqueue("bgr", bgr);
     }
     catch (const std::exception& e)
     {
-        _bEnqueue = false;
         std::cerr << "CNN_Background_V2::enqueue():" << e.what() << '\n';
     }    
 }
@@ -169,12 +170,15 @@ MattingObjects CNN_Background_V2::fetchResults()
 {
     MattingObjects results;
 
+    if (!request)
+    {
+        return results;
+    }
+
     try
     {
         cv::Mat matPha = cv::Mat::zeros(_config.input_shape, CV_8UC1);
-        cv::Mat matCom = cv::Mat::zeros(_out_shape, CV_8UC3);
         unsigned char* dataMatPha = matPha.data;
-        unsigned char* dataMatCom = matCom.data;
 
         //3.1. get alpha mat
         Blob::Ptr blobPha = request->GetBlob("pha");
@@ -190,58 +194,7 @@ MattingObjects CNN_Background_V2::fetchResults()
             *(dataMatPha + pid) = alpha * 255.0f;
         }
 
-        if (matPha.rows != _out_shape.height || matPha.cols != _out_shape.width)
-        {
-            cv::resize(matPha, matPha, _out_shape, 0, 0, cv::INTER_CUBIC);
-        }
-        dataMatPha = matPha.data;
-        image_size = matPha.rows * matPha.cols;
-
-        //3.2 get bgr2
-        cv::Mat matBgr2 = _bgrReplace.clone();
-        if (matBgr2.rows != _out_shape.height || matBgr2.cols != _out_shape.width)
-        {
-            cv::resize(matBgr2, matBgr2, _out_shape);
-        }
-        unsigned char* dataMatBgr2 = matBgr2.data;
-
-        //3.3 get frame
-        cv::Mat matFrame1 = _frame.clone();
-        if (matFrame1.rows != _out_shape.height || matFrame1.cols != _out_shape.width)
-        {
-            cv::resize(matFrame1, matFrame1, _out_shape);
-        }
-        unsigned char* dataMatFrame1 = matFrame1.data;
-
-        //3.4 get composite
-        int num_channels = matCom.channels();
-        for (size_t pid = 0; pid < image_size; pid++)
-        {
-            int nAlpha = *(dataMatPha + pid);
-            int rowC = pid * num_channels;
-            if (nAlpha == 0)
-            {
-                *(dataMatCom + rowC + 2) = *(dataMatBgr2 + rowC + 2);
-                *(dataMatCom + rowC + 1) = *(dataMatBgr2 + rowC + 1);
-                *(dataMatCom + rowC) = *(dataMatBgr2 + rowC);
-            }
-            else if (nAlpha == 255)
-            {
-                *(dataMatCom + rowC + 2) = *(dataMatFrame1 + rowC + 2);
-                *(dataMatCom + rowC + 1) = *(dataMatFrame1 + rowC + 1);
-                *(dataMatCom + rowC) = *(dataMatFrame1 + rowC);
-            }
-            else
-            {
-                float alpha = nAlpha / 255.0;
-                *(dataMatCom + rowC + 2) = *(dataMatFrame1 + rowC + 2) * alpha + *(dataMatBgr2 + rowC + 2) * (1 - alpha);
-                *(dataMatCom + rowC + 1) = *(dataMatFrame1 + rowC + 1) * alpha + *(dataMatBgr2 + rowC + 1) * (1 - alpha);
-                *(dataMatCom + rowC) = *(dataMatFrame1 + rowC) * alpha + *(dataMatBgr2 + rowC) * (1 - alpha);
-            }
-        }
-
         MattingObject objMatter;
-        objMatter.com = matCom.clone();
         objMatter.pha = matPha.clone();
         results.push_back(objMatter);
 
@@ -253,3 +206,4 @@ MattingObjects CNN_Background_V2::fetchResults()
         return results;
     }
 }
+

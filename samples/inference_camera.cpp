@@ -55,22 +55,29 @@ void Inference_Camera()
 
         return;
     }
-
     InitWindows();
 
     cv::VideoCapture capture0(src);
 
     int framecnt = 0;
-    int nDelay = 1;
+    int nDelay = 10;
     cv::Mat frame, bgrFrame, bgrFrame2;
     cv::Mat matCom, matPha;
     bgrFrame = cv::imread(bgr);
     bgrFrame2 = cv::imread(bgr2);
     std::map<std::string, ovlib::matter::FrameData> output;
     ovlib::matter::FrameData frame_com, frame_pha;
-    ovlib::FaceTimerCounter timercounter;
+    ovlib::MatterBencher timercounter;
     timercounter.Start();
     double lElapse = 0;
+
+
+    FrameData frame_bgr;
+    ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr);
+    FrameData frame_bgr_replace;
+    //ovlib::Utils_Ov::mat2FrameData(bgrFrame2, frame_bgr_replace);
+    ovlib::Utils_Ov::mat2FrameData(bgrFrame2, frame_bgr_replace);
+    pChan->setBackground_async(frame_bgr_replace, EFFECT_BLUR, frame_bgr);
 
     while (1)
     {
@@ -90,24 +97,21 @@ void Inference_Camera()
             ovlib::TimerCounter estimate("Phase...");
             FrameData frame_main;
             ovlib::Utils_Ov::mat2FrameData(frame, frame_main);
-            FrameData frame_bgr;
-            ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr);
-            FrameData frame_bgr_replace;
-            //ovlib::Utils_Ov::mat2FrameData(bgrFrame2, frame_bgr_replace);
-            ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr_replace);
 
-            pChan->process(frame_main, frame_bgr, frame_bgr_replace, out_shape, &output);
+            //pChan->process(frame_main, frame_bgr, frame_bgr_replace, out_shape, &output);
+            pChan->process_async(frame_main, frame_com, frame_pha);
             lElapse += timercounter.Elapse();
             std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;
         //}
 
-        frame_com = output["com"];
-        frame_pha = output["pha"];
         ovlib::Utils_Ov::frameData2Mat(frame_com, matCom);
         ovlib::Utils_Ov::frameData2Mat(frame_pha, matPha);
 
         cv::imshow("com", matCom);
-        cv::imshow("pha", matPha);
+        if (!matPha.empty())
+        {
+            cv::imshow("pha", matPha);
+        }
         char c = cv::waitKey(nDelay);
         if (c == 'c')
         {

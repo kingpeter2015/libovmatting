@@ -18,27 +18,22 @@
 */
 struct CNNConfig
 {
-    explicit CNNConfig(const std::string &path_to_model, const std::string &bin, const cv::Size shape=cv::Size(256,144)) : path_to_model(path_to_model), path_to_bin(bin), input_shape(shape){}
+    explicit CNNConfig(const std::string &path_to_model, const std::string &bin, const cv::Size in_shape=cv::Size(256,144)) : path_to_model(path_to_model), path_to_bin(bin), input_shape(in_shape){}
 
-    /** @brief Path to model description */
     std::string path_to_model;
     std::string path_to_bin;
     float scale{0.25};
-    /** @brief Maximal size of batch */
     int max_batch_size{1};
 
-    /** @brief Inference Engine */
     InferenceEngine::Core ie;
-    /** @brief Device name */
     std::string deviceName{"CPU"};
     
-    bool is_async{true};
+    bool is_async{false};
     cv::Size input_shape;
+
     int cpu_threads_num;    //default 0
     bool cpu_bind_thread; //default true
     int cpu_throughput_streams;    //default 1
-
-    int effect;
 };
 
 /**
@@ -113,7 +108,7 @@ class AsyncAlgorithm
 {
 public:
     virtual ~AsyncAlgorithm() {}
-    virtual void enqueue(const cv::Mat& frame, const cv::Mat& bgr, const cv::Mat& bgrReplace, const cv::Size& out_shape) = 0;
+    virtual void enqueue(const std::string& name, const cv::Mat& frame) = 0;
     virtual void submitRequest() = 0;
     virtual void wait() = 0;
     virtual void printPerformanceCounts(const std::string &fullDeviceName) = 0;

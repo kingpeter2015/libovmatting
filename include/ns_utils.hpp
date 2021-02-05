@@ -56,13 +56,14 @@ namespace ovlib
         bool _started = false;
     };
 
-    class OV_MATTER_API FaceTimerCounter
+    class OV_MATTER_API MatterBencher
     {
     public:
-        FaceTimerCounter();
-        virtual ~FaceTimerCounter();
+        MatterBencher();
+        virtual ~MatterBencher();
         void Start();
         int64_t Elapse();
+        float Get();
 
     private:
 #if (_MSC_VER)
@@ -72,6 +73,8 @@ namespace ovlib
 #endif // _WIN
         int64_t _elapse;
         bool _started = false;
+        float _avg_fps;
+        float _ratio;
     };
 
     namespace slog
@@ -164,6 +167,8 @@ namespace ovlib
         static void showImage(cv::Mat& img, std::string& title);
         static void frameData2Mat(matter::FrameData& frameData, cv::Mat& outMat);
         static void mat2FrameData(cv::Mat& mat, matter::FrameData& frameData);
+
+        static void sleep(long milliseconds);
     };
 } // namespace ovlib
 

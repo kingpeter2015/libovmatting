@@ -3,13 +3,17 @@
 
 using namespace ovlib;
 
-FaceTimerCounter::FaceTimerCounter() {}
+MatterBencher::MatterBencher() 
+{
+    _avg_fps = -1.0f;
+    _ratio = 0.5f;
+}
 
-FaceTimerCounter::~FaceTimerCounter()
+MatterBencher::~MatterBencher()
 {
 }
 
-void FaceTimerCounter::Start()
+void MatterBencher::Start()
 {
     if (_started)
     {
@@ -20,14 +24,22 @@ void FaceTimerCounter::Start()
     _started = true;
 }
 
-int64_t FaceTimerCounter::Elapse()
+int64_t MatterBencher::Elapse()
 {
     auto ckpnt = std::chrono::high_resolution_clock::now();
     auto elapsed = ckpnt - _start;
     _elapse = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
     _start = ckpnt;
 
+    float fps_sample = 1000.0 / (_elapse);
+    _avg_fps = _avg_fps < 0.0f ? fps_sample : (_ratio * fps_sample + (1 - _ratio) * _avg_fps);
+
     return _elapse;
+}
+
+float MatterBencher::Get()
+{
+    return _avg_fps;
 }
 
 std::vector<std::string> Utils_String::split(const std::string &s, char delim)
@@ -100,54 +112,68 @@ void Utils_Ov::showImage(cv::Mat& img, std::string& title)
 
 void Utils_Ov::mat2FrameData(cv::Mat& mat, matter::FrameData& frameData)
 {
-    //matter::FrameData frameData;
+    if (mat.empty())
+    {
+        frameData.width = 0;
+        frameData.height = 0;
+        frameData.frame = 0;
+        return;
+    }
+    cv::Mat frame = mat.clone();
     frameData.width = mat.cols;
     frameData.height = mat.rows;
-    frameData.frame = mat.data;
+    frameData.frame = frame.data;
     int type = mat.type();
     if (type == CV_8UC3)
     {
         frameData.format = matter::FRAME_FOMAT_BGR;
+        size_t size = 3 * frameData.width * frameData.height;
+        frameData.frame = new unsigned char[size];
+        memcpy(frameData.frame, mat.data, size);
     }
     else if (type == CV_8UC1)
     {
         frameData.format = matter::FRAME_FOMAT_GRAY;
+        size_t size = frameData.width * frameData.height;
+        frameData.frame = new unsigned char[size];
+        memcpy(frameData.frame, mat.data, size);
     }
 }
 
 
 void Utils_Ov::frameData2Mat(matter::FrameData& frameData, cv::Mat& outMat)
 {
-    assert(frameData.frame != 0);
-    assert(frameData.width != 0);
-    assert(frameData.height != 0);
+    if (frameData.format == 0 || frameData.width <= 0 || frameData.height <= 0)
+    {
+        outMat = cv::Mat();
+    }
 
     if (frameData.format == matter::FRAME_FOMAT_I420)
     {
         size_t size = frameData.height * frameData.width * 3 / 2;
-        outMat = cv::Mat(frameData.height + frameData.height / 2, frameData.width, CV_8UC1);
-        memcpy(outMat.data, frameData.frame, size);
+        outMat = cv::Mat(frameData.height + frameData.height / 2, frameData.width, CV_8UC1, frameData.frame);
         cv::cvtColor(outMat, outMat, cv::COLOR_YUV2BGR_I420);
     }
     else if (frameData.format == matter::FRAME_FOMAT_RGB)
     {
         size_t size = frameData.height * frameData.width * 3;
-        outMat = cv::Mat(frameData.height, frameData.width, CV_8UC3);
-        memcpy(outMat.data, frameData.frame, size);
+        outMat = cv::Mat(frameData.height, frameData.width, CV_8UC3, frameData.frame);
         cv::cvtColor(outMat, outMat, cv::COLOR_RGB2BGR);
     }
     else if (frameData.format == matter::FRAME_FOMAT_BGR)
     {
         size_t size = frameData.height * frameData.width * 3;
-        outMat = cv::Mat(frameData.height, frameData.width, CV_8UC3);
-           
-        memcpy(outMat.data, frameData.frame, size);
+        outMat = cv::Mat(frameData.height, frameData.width, CV_8UC3, frameData.frame);
     }
     else if (frameData.format == matter::FRAME_FOMAT_GRAY)
     {
         size_t size = frameData.height * frameData.width;
-        outMat = cv::Mat(frameData.height, frameData.width, CV_8UC1);
-
-        memcpy(outMat.data, frameData.frame, size);
+        outMat = cv::Mat(frameData.height, frameData.width, CV_8UC1, frameData.frame);
     }
+}
+
+void Utils_Ov::sleep(long milliseconds)
+{
+    std::chrono::milliseconds dura(milliseconds);
+    std::this_thread::sleep_for(dura);
 }
