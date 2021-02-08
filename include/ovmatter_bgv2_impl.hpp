@@ -48,7 +48,7 @@ namespace ovlib
 			virtual int process(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape, std::map<std::string, FrameData>* pResults = 0) override;
 			virtual void setStrategy_async(bool bAuto = true, int interval = 0, const Shape& input_shape = { 0,0 }, const Shape& out_shape = { 0,0 }) override;
 			virtual void setBackground_async(FrameData& bgrReplace, MATTER_EFFECT = EFFECT_NONE, const FrameData& bgr = { 0, 0, 0, FRAME_FOMAT_BGR, 0 }) override;
-			virtual int process_async(FrameData& frame, FrameData& frameCom, FrameData& frameAlpha) override;
+			virtual int process_async(FrameData& frame, FrameData& frameCom, FrameData& frameAlpha, const ovlib::matter::Shape& out_shape) override;
 
 			/***for ov_simple_thread***/
 			virtual void run() override;

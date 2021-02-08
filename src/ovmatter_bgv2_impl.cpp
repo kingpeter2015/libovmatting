@@ -6,7 +6,7 @@ using namespace InferenceEngine;
 
 REGISTER_MATTER_CLASS(METHOD_BACKGROUND_MATTING_V2, MatterBackgroundV2Impl)
 
-MatterBackgroundV2Impl::MatterBackgroundV2Impl() : _bInit(false), _interval(5), _elapse(0), _shape_output(cv::Size(1280,720))
+MatterBackgroundV2Impl::MatterBackgroundV2Impl() : _bInit(false), _interval(3), _elapse(0), _shape_output(cv::Size(1280,720))
 {
 }
 
@@ -73,6 +73,10 @@ int MatterBackgroundV2Impl::process(FrameData& frame, FrameData& bgr, FrameData&
 	{
 		return -1;
 	}
+	if (_pCnn->getAsync())
+	{
+		_pCnn->setAsync(false);
+	}
 
 	return doWork_sync(frame, bgr, bgrReplace, shape, pResults);
 }
@@ -84,6 +88,8 @@ int MatterBackgroundV2Impl::doWork_sync_V2(cv::Mat& frame, cv::Mat& bgr, cv::Mat
 		matCom = bgrReplace;
 		return -1;
 	}
+
+	
 
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
@@ -255,7 +261,7 @@ void MatterBackgroundV2Impl::setBackground_async(FrameData& bgrReplace, MATTER_E
 	}
 }
 
-int MatterBackgroundV2Impl::process_async(FrameData& frame, FrameData& frameCom, FrameData& frameAlpha)
+int MatterBackgroundV2Impl::process_async(FrameData& frame, FrameData& frameCom, FrameData& frameAlpha, const ovlib::matter::Shape& out_shape)
 {
 	static int l_frame_count = 0;
 	//1.put input frame into input_queue 
@@ -277,6 +283,13 @@ int MatterBackgroundV2Impl::process_async(FrameData& frame, FrameData& frameCom,
 			Utils_Ov::frameData2Mat(frame, matFrame);
 			_queue_input.push(matFrame);
 		}
+	}
+
+	//1.2 input shape
+	if (out_shape.height > 0 && out_shape.width > 0)
+	{
+		_shape_output.width = out_shape.width;
+		_shape_output.height = out_shape.height;
 	}
 
 	// 2.return raw frame if out put shape is empty or replace bgr is empty
@@ -302,8 +315,6 @@ int MatterBackgroundV2Impl::process_async(FrameData& frame, FrameData& frameCom,
 	{
 		MattingObject f;
 		_queue_output.front(f);
-		//cv::Mat matF = f.com.clone();
-		//cv::Mat matA = f.pha.clone();
 		Utils_Ov::mat2FrameData(f.com, frameCom);
 		Utils_Ov::mat2FrameData(f.pha, frameAlpha);
 		return 1;
@@ -320,7 +331,7 @@ int MatterBackgroundV2Impl::process_async(FrameData& frame, FrameData& frameCom,
 
 void MatterBackgroundV2Impl::run()
 {
-	long lSleep = 1;
+	long lSleep = 5;
 	while (!isInterrupted())
 	{
 		Utils_Ov::sleep(lSleep);
@@ -334,6 +345,11 @@ void MatterBackgroundV2Impl::run()
 		{
 			std::lock_guard<std::mutex> lock(mutex_);
 			_bencher.Start();
+			if (!_pCnn->getAsync())
+			{
+				_pCnn->setAsync(true);
+			}
+
 			_pCnn->enqueue("src", frame);
 			if (!_pCnn->isBgrEnqueued())
 			{

@@ -27,7 +27,7 @@ protected:
 	virtual void run();
 
 private:
-	std::atomic<bool> _interript = false;
+	std::atomic<bool> _interript;
 	std::thread _thread;
 };
 

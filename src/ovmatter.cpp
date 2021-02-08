@@ -18,7 +18,8 @@ MatterChannel* MatterChannel::create(const MatterParams& params)
 	}
 	catch (const std::exception& e)
 	{
-		std::cerr << "MatterChannel::create():" << e.what() << '\n';
+		std::string msgError = e.what();
+		std::cerr << "MatterChannel::create():" << msgError << '\n';
 		return NULL;
 	}
 }

@@ -3,7 +3,7 @@
 
 ov_simple_thread::ov_simple_thread()
 {
-
+	_interript = false;
 }
 
 

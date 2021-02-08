@@ -1,16 +1,13 @@
 #include "samples.hpp"
 #include "ns_utils.hpp"
-
-#include <inference_engine.hpp>
-
-using namespace InferenceEngine;
+#include <sstream>
 
 using namespace ovlib::matter;
 
 static void InitWindows()
 {
-    int width = 1280;
-    int height = 720;
+    int width = 640;
+    int height = 360;
     cv::namedWindow("com", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
     cv::resizeWindow("com", width, height);
     cv::moveWindow("com", 0, 0);
@@ -21,12 +18,12 @@ static void InitWindows()
 
 void Inference_Camera()
 {
-#ifdef _MSC_VER
+#if (_MSC_VER)
     std::string model = ".\\share\\pytorch_mobilenetv2.xml";
     std::string bin = ".\\share\\pytorch_mobilenetv2.bin";
     std::string src = ".\\share\\src.mp4";
     std::string bgr = ".\\share\\src.png";
-    std::string bgr2 = ".\\share\\replace.jpg";
+    std::string bgr2 = ".\\share\\replace1.jpg";
 #else
     std::string model = "../share/pytorch_mobilenetv2.xml";
     std::string bin = "../share/pytorch_mobilenetv2.bin";
@@ -48,6 +45,7 @@ void Inference_Camera()
     params.method = ovlib::matter::METHOD_BACKGROUND_MATTING_V2;
     params.is_async = true;
     params.effect = ovlib::matter::EFFECT_BLUR;
+    params.device = "CPU";
     MatterChannel* pChan = MatterChannel::create(params);
     if (!pChan)
     {
@@ -58,6 +56,9 @@ void Inference_Camera()
     InitWindows();
 
     cv::VideoCapture capture0(src);
+    capture0.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+    capture0.set(cv::CAP_PROP_FRAME_HEIGHT, 360);
+    capture0.set(cv::CAP_PROP_FPS, 200);
 
     int framecnt = 0;
     int nDelay = 10;
@@ -85,37 +86,42 @@ void Inference_Camera()
         {
             break;
         }
-
         capture0 >> frame;
+        
         if (frame.empty())
         {
             break;
         }
         
         framecnt++;
-        //{            
-            ovlib::TimerCounter estimate("Phase...");
+        {
+            std::stringstream ss;
+            ss << "Phase:pChan->process_async()" << ", frame:(" << framecnt << ")";
+            ovlib::TimerCounter estimate(ss.str());
             FrameData frame_main;
             ovlib::Utils_Ov::mat2FrameData(frame, frame_main);
 
             //pChan->process(frame_main, frame_bgr, frame_bgr_replace, out_shape, &output);
             pChan->process_async(frame_main, frame_com, frame_pha);
             lElapse += timercounter.Elapse();
-            std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;
-        //}
-
-        ovlib::Utils_Ov::frameData2Mat(frame_com, matCom);
-        ovlib::Utils_Ov::frameData2Mat(frame_pha, matPha);
-
-        cv::imshow("com", matCom);
-        if (!matPha.empty())
-        {
-            cv::imshow("pha", matPha);
+            std::cout << "Elapse:" << lElapse / 1000.0 << " seconds" << std::endl;
         }
-        char c = cv::waitKey(nDelay);
-        if (c == 'c')
+
         {
-            break;
+            ovlib::Utils_Ov::frameData2Mat(frame_com, matCom);
+            ovlib::Utils_Ov::frameData2Mat(frame_pha, matPha);
+
+            cv::imshow("com", matCom);
+            if (!matPha.empty())
+            {
+                cv::imshow("pha", matPha);
+            }
+            
+            char c = cv::waitKey(nDelay);
+            if (c == 'c')
+            {
+                break;
+            }
         }
     }
     std::cout << "Speed:" <<  framecnt * 1000 / (lElapse) << " FPS" << std::endl;

@@ -157,4 +157,14 @@ public:
         std::cout << "BaseMatting Performance counts for " << topoName << std::endl << std::endl;
         ::printPerformanceCounts(*request, std::cout, fullDeviceName, false);
     }
+
+    void setAsync(bool bAsync)
+    {
+        isAsync = bAsync;
+    }
+
+    bool getAsync()
+    {
+        return isAsync;
+    }
 };
