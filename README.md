@@ -14,21 +14,29 @@ Ubuntu<br>
 Windows 10<br>
 
 ## Usage
-1 Install openvino<br>
+### 1 Install openvino<br>
 Please refer https://software.intel.com/content/www/us/en/develop/tools/openvino-toolkit.html<br>
 Use version: openvino_2021.2.185<br>
 <br>
-2 Build libovmatting library and test program<br>
+### 2 Build libovmatting library and test program<br>
 Clone the project<br>
 $git clone https://github.com/kingpeter2015/libovmatting.git<br>
-$cd libovmatting<br>
-$mkdir build<br>
-$cmake ..<br>
-$make<br>
+
+#### Ubuntu/CentOS
+
+$cd libovmatting <br>
+$mkdir build <br>
+$cmake .. <br>
+$make <br>
 <br>
-4 Run the test program<br>
+Run the test program <br>
 $cd ./build/ <br>
 $LD_LIBRARY_PATH=./:$(LD_LIBRARY_PATH) ./sample<br>
+
+#### Windows 10
+Install Visual Studio 2019 <br>
+open Win64\ovmatting.sln <br>
+build and run in the Visual Studio IDE <br>
 
 ## Reference
 OpenVINO https://software.intel.com/content/www/us/en/develop/tools/openvino-toolkit.html <br>
