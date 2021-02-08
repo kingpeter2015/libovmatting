@@ -8,5 +8,6 @@
 void Inference_Video();
 
 void Inference_Camera();
+void Inference_Modnet();
 
 #endif

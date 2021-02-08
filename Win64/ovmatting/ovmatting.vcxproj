@@ -95,6 +95,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\cnn.hpp" />
+    <ClInclude Include="..\..\include\cnn_modnet.hpp" />
     <ClInclude Include="..\..\include\common.hpp" />
     <ClInclude Include="..\..\include\cnn_backgroundv2.hpp" />
     <ClInclude Include="..\..\include\ns_bmp.hpp" />
@@ -105,12 +106,14 @@
     <ClInclude Include="..\..\include\ovmatter.h" />
     <ClInclude Include="..\..\include\ovmatter_base_impl.hpp" />
     <ClInclude Include="..\..\include\ovmatter_bgv2_impl.hpp" />
+    <ClInclude Include="..\..\include\ovmatter_modnet_impl.hpp" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\cnn.cpp" />
     <ClCompile Include="..\..\src\cnn_backgroundv2.cpp" />
+    <ClCompile Include="..\..\src\cnn_modnet.cpp" />
     <ClCompile Include="..\..\src\ns_bmp.cpp" />
     <ClCompile Include="..\..\src\ns_register.cpp" />
     <ClCompile Include="..\..\src\ns_thread.cpp" />
@@ -118,6 +121,7 @@
     <ClCompile Include="..\..\src\ovmatter.cpp" />
     <ClCompile Include="..\..\src\ovmatter_base_impl.cpp" />
     <ClCompile Include="..\..\src\ovmatter_bgv2_impl.cpp" />
+    <ClCompile Include="..\..\src\ovmatter_modnet_impl.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

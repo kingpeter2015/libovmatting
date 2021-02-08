@@ -28,7 +28,8 @@ namespace ovlib
         //Methods of Background matting
         enum OV_MATTER_API MattingMethod
         {
-            METHOD_BACKGROUND_MATTING_V2 = 0x00
+            METHOD_BACKGROUND_MATTING_V2 = 0x00,
+            METHOD_MODNET = 0x01,
         };
 
         enum OV_MATTER_API MATTER_EFFECT

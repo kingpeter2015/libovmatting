@@ -9,11 +9,14 @@ static void InitWindows()
     int width = 640;
     int height = 360;
     cv::namedWindow("com", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
-    cv::resizeWindow("com", width, height);
+    cv::resizeWindow("com", 1280, 720);
     cv::moveWindow("com", 0, 0);
     cv::namedWindow("pha", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
     cv::resizeWindow("pha", width, height);
     cv::moveWindow("pha", 650, 0);
+    cv::namedWindow("frame", cv::WindowFlags::WINDOW_NORMAL | cv::WindowFlags::WINDOW_FREERATIO);
+    cv::resizeWindow("frame", width, height);
+    cv::moveWindow("pha", 0, 400);
 }
 
 void Inference_Camera()
@@ -116,6 +119,7 @@ void Inference_Camera()
             {
                 cv::imshow("pha", matPha);
             }
+            cv::imshow("frame", frame);
             
             char c = cv::waitKey(nDelay);
             if (c == 'c')

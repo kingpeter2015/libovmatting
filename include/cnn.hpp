@@ -13,6 +13,15 @@
 #include <inference_engine.hpp>
 #include <ie_common.h>
 
+
+struct MattingObject {
+    cv::Mat pha;
+    cv::Mat com;
+    cv::Mat fgr;
+};
+
+using MattingObjects = std::vector<MattingObject>;
+
 /**
 * @brief Base class of config for network
 */
