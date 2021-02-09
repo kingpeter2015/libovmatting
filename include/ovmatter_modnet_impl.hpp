@@ -55,7 +55,6 @@ namespace ovlib
 
 		private:
 			int doWork_sync(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape, std::map<std::string, FrameData>* pResults);
-			int doWork_sync_V2(cv::Mat& frame, cv::Mat& bgr, cv::Mat& bgrReplace, cv::Size& out_shape, cv::Mat& matCom, cv::Mat& matAlpha);
 			void compose(cv::Mat& src, cv::Mat& replace, cv::Mat& alpha, cv::Mat& com, cv::Size& out_shape);
 
 		private:			

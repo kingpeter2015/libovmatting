@@ -56,7 +56,7 @@ bool MatterModnetImpl::init(const MatterParams& param)
 		config.path_to_bin = param.path_to_bin;
 		_pCnn.reset(new CNN_Modnet(config));
 
-		start(); //开启线程
+		//start(); //开启线程
 
 		_bInit = true;
 	}
@@ -73,43 +73,12 @@ int MatterModnetImpl::process(FrameData& frame, FrameData& bgr, FrameData& bgrRe
 	{
 		return -1;
 	}
-	if (_pCnn->getAsync())
+	if (!_pCnn->getAsync())
 	{
-		_pCnn->setAsync(false);
+		_pCnn->setAsync(true);
 	}
 
 	return doWork_sync(frame, bgr, bgrReplace, shape, pResults);
-}
-
-int MatterModnetImpl::doWork_sync_V2(cv::Mat& frame, cv::Mat& bgr, cv::Mat& bgrReplace, cv::Size& out_shape, cv::Mat& matCom, cv::Mat& matAlpha)
-{
-	if (frame.empty())
-	{
-		matCom = bgrReplace;
-		return -1;
-	}
-
-	
-
-	{
-		std::lock_guard<std::mutex> lock(mutex_);
-		_bencher.Start();
-		_pCnn->enqueue("input.1", frame);
-		//_pCnn->enqueue("bgr", bgr);
-		_pCnn->submitRequest();
-		_pCnn->wait();
-		_matResult = _pCnn->fetchResults();
-		if (_matResult.size() <= 0)
-		{
-			return -1;
-		}
-
-		matAlpha = _matResult[0].pha;
-		compose(frame, bgrReplace, matAlpha, matCom, out_shape);
-		_elapse = _bencher.Elapse();
-	}
-
-	return 0;
 }
 
 /// <summary>
@@ -124,9 +93,8 @@ int MatterModnetImpl::doWork_sync_V2(cv::Mat& frame, cv::Mat& bgr, cv::Mat& bgrR
 int MatterModnetImpl::doWork_sync(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape, std::map<std::string, FrameData>* pResults)
 {
 	int ret = -1;
-	if (frame.frame == 0 || bgr.frame == 0 || bgrReplace.frame == 0
+	if (frame.frame == 0 || bgrReplace.frame == 0
 		|| frame.width == 0 || frame.height == 0
-		|| bgr.width == 0 || bgr.height == 0
 		|| bgrReplace.width == 0 || bgrReplace.height == 0)
 	{
 		return ret;
@@ -144,7 +112,6 @@ int MatterModnetImpl::doWork_sync(FrameData& frame, FrameData& bgr, FrameData& b
 	cv::Mat matBgrReplace;
 	ovlib::Utils_Ov::frameData2Mat(bgrReplace, matBgrReplace);
 
-	_prevFrame = matFrame.clone();
 	cv::Size out_shape(shape.width, shape.height);
 
 	{
