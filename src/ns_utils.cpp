@@ -128,15 +128,19 @@ void Utils_Ov::mat2FrameData(cv::Mat& mat, matter::FrameData& frameData)
     {
         frameData.format = matter::FRAME_FOMAT_BGR;
         size_t size = 3 * frameData.width * frameData.height;
+        
         frameData.frame = new unsigned char[size];
         memcpy(frameData.frame, mat.data, size);
+        //frameData.frame = mat.data;
     }
     else if (type == CV_8UC1)
     {
         frameData.format = matter::FRAME_FOMAT_GRAY;
         size_t size = frameData.width * frameData.height;
+        
         frameData.frame = new unsigned char[size];
         memcpy(frameData.frame, mat.data, size);
+        //frameData.frame = mat.data;
     }
 }
 

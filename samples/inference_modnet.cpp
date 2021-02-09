@@ -28,15 +28,15 @@ void Inference_Modnet()
 	std::string bgr = ".\\share\\src.png";
 	std::string bgr2 = ".\\share\\replace.jpg";
 #else
-	std::string model = "../share/pytorch_mobilenetv2.xml";
-	std::string bin = "../share/pytorch_mobilenetv2.bin";
+	std::string model = "../share/modnet.xml";
+	std::string bin = "../share/modnet.bin";
 	std::string src = "../share/src.mp4";
 	std::string bgr = "../share/src.png";
 	std::string bgr2 = "../share/replace.jpg";
 #endif //  WINDOWS
 	ovlib::matter::Shape in_shape, out_shape;
-	in_shape.width = 256;
-	in_shape.height = 256;
+	in_shape.width = 512;
+	in_shape.height = 512;
 	out_shape.width = 1280;
 	out_shape.height = 720;
 
@@ -113,11 +113,14 @@ void Inference_Modnet()
 
 		cv::imshow("com", matCom);
 		cv::imshow("pha", matPha);
+		
 		char c = cv::waitKey(nDelay);
 		if (c == 'c')
 		{
 			break;
 		}
+		delete [] frame_com.frame;
+		delete[] frame_pha.frame;
 	}
 	std::cout << "Speed:" << framecnt * 1000 / (lElapse) << " FPS" << std::endl;
 	capture0.release();

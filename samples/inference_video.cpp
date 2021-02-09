@@ -113,6 +113,8 @@ void Inference_Video()
         {
             break;
         }
+        delete[] frame_com.frame;
+        delete[] frame_pha.frame;
     }
     std::cout << "Speed:" << framecnt * 1000 / (lElapse) << " FPS" << std::endl;
     capture0.release();

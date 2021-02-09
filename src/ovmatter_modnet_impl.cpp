@@ -115,7 +115,6 @@ int MatterModnetImpl::doWork_sync(FrameData& frame, FrameData& bgr, FrameData& b
 	cv::Size out_shape(shape.width, shape.height);
 
 	{
-		std::lock_guard<std::mutex> lock(mutex_);
 		_pCnn->enqueue("input.1", matFrame);
 		//_pCnn->enqueue("bgr", matBgr); 
 		_pCnn->submitRequest();
