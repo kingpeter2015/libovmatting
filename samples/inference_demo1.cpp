@@ -23,6 +23,7 @@ static void showUsage()
     std::cout << "    -bin                          " << "Required. Path to the model (.bin) file." << std::endl;
     std::cout << "    -in_width                     " << "Optional. Width of input shape. Default: 320" << std::endl;
     std::cout << "    -in_height                    " << "Optional. Height of input shape. Default: 180" << std::endl;
+    std::cout << "    -method                       " << "Required. Matting Method, 0-background v2;1-modnet" << std::endl;
 }
 
 void Inference_demo1(int argc, char* argv[])
@@ -93,6 +94,18 @@ void Inference_demo1(int argc, char* argv[])
             {
                 in_shape.width = atoi(argv[++i]);
             }
+            else if (!::strncmp(pc, "-method", 7))
+            {
+                int nMethod = atoi(argv[++i]);
+                if (nMethod == 0)
+                {
+                    params.method = ovlib::matter::METHOD_BACKGROUND_MATTING_V2;
+                }
+                else
+                {
+                    params.method = ovlib::matter::METHOD_MODNET;
+                }
+            }
             else if (!::strncmp(pc, "-h", 2))
             {
                 showUsage();
@@ -105,9 +118,17 @@ void Inference_demo1(int argc, char* argv[])
     params.input_shape = in_shape;
     params.path_to_model = model;
     params.path_to_bin = bin;
-    params.method = ovlib::matter::METHOD_BACKGROUND_MATTING_V2;
+    //params.method = ovlib::matter::METHOD_MODNET;
     params.is_async = false;
     //params.effect = ovlib::matter::EFFECT_BLUR;
+
+    if (params.method == ovlib::matter::METHOD_MODNET)
+    {
+        params.path_to_model = ".\\share\\modnet.xml";
+        params.path_to_bin = ".\\share\\modnet.bin";
+        params.input_shape.width = 512;
+        params.input_shape.height = 512;
+    }
     MatterChannel* pChan = MatterChannel::create(params);
     if (!pChan)
     {

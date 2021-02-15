@@ -72,6 +72,11 @@ void Inference_Video()
     timercounter.Start();
     double lElapse = 0;
 
+    FrameData frame_bgr;
+    ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr);
+    FrameData frame_bgr_replace;
+    ovlib::Utils_Ov::mat2FrameData(bgrFrame2, frame_bgr_replace);
+
     while (1)
     {
         if (!capture0.isOpened())
@@ -87,18 +92,14 @@ void Inference_Video()
 
         framecnt++;
         {            
-        ovlib::TimerCounter estimate("Phase...");
-        FrameData frame_main;
-        ovlib::Utils_Ov::mat2FrameData(frame, frame_main);
-        FrameData frame_bgr;
-        ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr);
-        FrameData frame_bgr_replace;
-        ovlib::Utils_Ov::mat2FrameData(bgrFrame2, frame_bgr_replace);
+            ovlib::TimerCounter estimate("Phase...");
+            FrameData frame_main;
+            ovlib::Utils_Ov::mat2FrameData(frame, frame_main);        
 
-        pChan->process(frame_main, frame_bgr, frame_bgr_replace, out_shape, &output);
-        lElapse += timercounter.Elapse();
-        std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;
-        delete[] frame_main.frame;
+            pChan->process(frame_main, frame_bgr, frame_bgr_replace, out_shape, &output);
+            lElapse += timercounter.Elapse();
+            std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;
+            delete[] frame_main.frame;
         }
 
         frame_com = output["com"];
@@ -117,6 +118,10 @@ void Inference_Video()
         }
         
     }
+
+    delete[] frame_bgr.frame;
+    delete[] frame_bgr_replace.frame;
+
     std::cout << "Speed:" << framecnt * 1000 / (lElapse) << " FPS" << std::endl;
     capture0.release();
     cv::destroyAllWindows();
