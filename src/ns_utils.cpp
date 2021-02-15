@@ -181,3 +181,36 @@ void Utils_Ov::sleep(long milliseconds)
     std::chrono::milliseconds dura(milliseconds);
     std::this_thread::sleep_for(dura);
 }
+
+double Utils_Ov::getSceneScore(cv::Mat prev_frame, cv::Mat frame, double& prev_mafd)
+{
+    double ret = 0.0f;
+    int w0 = prev_frame.cols;
+    int h0 = prev_frame.rows;
+    int w1 = frame.cols;
+    int h1 = frame.rows;
+    if (w0 == w1 && h0 == h1)
+    {
+        float mafd, diff;
+        uint64 sad = 0;
+        int nb_sad = 0;
+        cv::Mat gray0(h0, w0, CV_8UC1);
+        cv::Mat gray1(h0, w0, CV_8UC1);
+        cv::cvtColor(prev_frame, gray0, cv::COLOR_BGR2GRAY);
+        cv::cvtColor(frame, gray1, cv::COLOR_BGR2GRAY);
+        for (int i = 0; i < h0; i++)
+        {
+            for (int j = 0; j < w0; j++)
+            {
+                sad += abs(gray1.at<unsigned char>(i, j) - gray0.at<unsigned char>(i, j));
+                nb_sad++;
+            }
+        }
+        mafd = nb_sad ? (float)sad / nb_sad : 0;
+        diff = fabs(mafd - prev_mafd);
+        ret = av_clipf(OVMIN(mafd, diff) / 100., 0, 1);
+        prev_mafd = mafd;
+    }
+
+    return ret;
+}

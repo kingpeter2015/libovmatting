@@ -169,6 +169,7 @@ namespace ovlib
         static void mat2FrameData(cv::Mat& mat, matter::FrameData& frameData);
 
         static void sleep(long milliseconds);
+        static double getSceneScore(cv::Mat prev_frame, cv::Mat frame, double& prev_mafd);
     };
 } // namespace ovlib
 

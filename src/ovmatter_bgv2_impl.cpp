@@ -95,9 +95,7 @@ int MatterBackgroundV2Impl::doWork_sync_V2(cv::Mat& frame, cv::Mat& bgr, cv::Mat
 	{
 		matCom = bgrReplace;
 		return -1;
-	}
-
-	
+	}	
 
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
@@ -152,7 +150,11 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData& frame, FrameData& bgr, FrameD
 	cv::Mat matBgrReplace;
 	ovlib::Utils_Ov::frameData2Mat(bgrReplace, matBgrReplace);
 
-	//_prevFrame = matFrame.clone();
+	/*
+	double preDiff;
+	double dblDiff = Utils_Ov::getSceneScore(_prevFrame, matFrame, preDiff);
+	*/
+	_prevFrame = matFrame.clone();
 	cv::Size out_shape(shape.width, shape.height);
 
 	{
