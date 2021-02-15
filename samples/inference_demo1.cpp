@@ -121,7 +121,11 @@ void Inference_demo1(int argc, char* argv[])
     out_shape.width = capture0.get(cv::CAP_PROP_FRAME_WIDTH);
     out_shape.height = capture0.get(cv::CAP_PROP_FRAME_HEIGHT);
     cv::VideoWriter writer;
-    writer.open(dst, cv::VideoWriter::fourcc('X', '2', '6', '4'), 60, cv::Size(out_shape.width, out_shape.height));
+    bool bRet = writer.open(dst, cv::VideoWriter::fourcc('X', '2', '6', '4'), 60, cv::Size(out_shape.width, out_shape.height));
+    if (!bRet)
+    {
+        std::cout << "cv::VideoWriter Initializes failed!" << std::endl;
+    }
 
     int framecnt = 0;
     int nDelay = 1;
@@ -172,8 +176,6 @@ void Inference_demo1(int argc, char* argv[])
         ovlib::Utils_Ov::frameData2Mat(frame_com, matCom);
         writer.write(matCom);
 
-        cv::waitKey(15);
-
         delete[] frame_com.frame;
         delete[] frame_pha.frame;
         
@@ -183,7 +185,7 @@ void Inference_demo1(int argc, char* argv[])
     delete[] frame_bgr.frame;
     delete[] frame_bgr_replace.frame;
 
-    std::cout << "Speed:" << framecnt * 1000 / (lElapse) << " FPS" << std::endl;
+    std::cout << "Speed:" << framecnt * 1000 / (lElapse) << " FPS" << std::endl; 
 
     MatterChannel::destroyed(pChan);
     
