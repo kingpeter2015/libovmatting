@@ -1,7 +1,7 @@
 # libovmatting
 A C++ library for Background Matting using openvino and deep learning models.<br>
 
-Now support BackgroundMattingV2, MODNet Model.<br>
+Now support models such as BackgroundMattingV2, MODNet.<br>
 
 ## Application scenes
 <br>
