@@ -93,12 +93,12 @@ void Inference_Video()
         FrameData frame_bgr;
         ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr);
         FrameData frame_bgr_replace;
-        //ovlib::Utils_Ov::mat2FrameData(bgrFrame2, frame_bgr_replace);
-        ovlib::Utils_Ov::mat2FrameData(bgrFrame, frame_bgr_replace);
+        ovlib::Utils_Ov::mat2FrameData(bgrFrame2, frame_bgr_replace);
 
         pChan->process(frame_main, frame_bgr, frame_bgr_replace, out_shape, &output);
         lElapse += timercounter.Elapse();
         std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;
+        delete[] frame_main.frame;
         }
 
         frame_com = output["com"];
@@ -108,13 +108,14 @@ void Inference_Video()
 
         cv::imshow("com", matCom);
         cv::imshow("pha", matPha);
+        delete[] frame_com.frame;
+        delete[] frame_pha.frame;
         char c = cv::waitKey(nDelay);
         if (c == 'c')
         {
             break;
         }
-        delete[] frame_com.frame;
-        delete[] frame_pha.frame;
+        
     }
     std::cout << "Speed:" << framecnt * 1000 / (lElapse) << " FPS" << std::endl;
     capture0.release();

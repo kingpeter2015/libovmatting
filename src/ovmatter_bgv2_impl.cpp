@@ -14,6 +14,14 @@ MatterBackgroundV2Impl::~MatterBackgroundV2Impl()
 {
 	interrupt();
 	_bInit = false;
+	while (_queue_input.size() > 0)
+	{
+		_queue_input.clear();
+	}
+	while (_queue_output.size() > 0)
+	{
+		_queue_output.clear();
+	}
 }
 
 bool MatterBackgroundV2Impl::init(const MatterParams& param)
@@ -144,7 +152,7 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData& frame, FrameData& bgr, FrameD
 	cv::Mat matBgrReplace;
 	ovlib::Utils_Ov::frameData2Mat(bgrReplace, matBgrReplace);
 
-	_prevFrame = matFrame.clone();
+	//_prevFrame = matFrame.clone();
 	cv::Size out_shape(shape.width, shape.height);
 
 	{
@@ -311,6 +319,8 @@ int MatterBackgroundV2Impl::process_async(FrameData& frame, FrameData& frameCom,
 		frameAlpha.frame = 0;
 		return 1;	
 	}
+
+	/*
 	else if (_queue_output.size() == 1)
 	{
 		MattingObject f;
@@ -318,11 +328,16 @@ int MatterBackgroundV2Impl::process_async(FrameData& frame, FrameData& frameCom,
 		Utils_Ov::mat2FrameData(f.com, frameCom);
 		Utils_Ov::mat2FrameData(f.pha, frameAlpha);
 		return 1;
-	}
+	}*/
 
+	while (_queue_output.size() > 1)
+	{
+		MattingObject f;
+		_queue_output.pop(f);
+	}
 	// 4. if output queue is not empty, return first item in the output queue
 	MattingObject result;
-	_queue_output.pop(result);
+	_queue_output.front(result);
 	Utils_Ov::mat2FrameData(result.com, frameCom);
 	Utils_Ov::mat2FrameData(result.pha, frameAlpha);	
 
@@ -370,8 +385,10 @@ void MatterBackgroundV2Impl::run()
 				continue;
 			}
 			MattingObject obj;
-			obj.com = matCom.clone();
-			obj.pha = matAlpha.clone();
+			//obj.com = matCom.clone();
+			//obj.pha = matAlpha.clone();
+			obj.com = matCom;
+			obj.pha = matAlpha;
 			_queue_output.push(obj);
 			_elapse = _bencher.Elapse();
 		}

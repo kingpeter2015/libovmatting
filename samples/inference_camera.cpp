@@ -120,12 +120,16 @@ void Inference_Camera()
                 cv::imshow("pha", matPha);
             }
             cv::imshow("frame", frame);
-            
+            delete[] frame_com.frame;
+            delete[] frame_pha.frame;
             char c = cv::waitKey(nDelay);
+            
+            
             if (c == 'c')
             {
                 break;
             }
+            
         }
     }
     std::cout << "Speed:" <<  framecnt * 1000 / (lElapse) << " FPS" << std::endl;

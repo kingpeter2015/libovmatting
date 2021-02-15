@@ -27,5 +27,8 @@
     <ClCompile Include="..\..\samples\inference_modnet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\samples\inference_demo1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

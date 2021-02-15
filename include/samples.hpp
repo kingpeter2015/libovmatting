@@ -9,5 +9,6 @@ void Inference_Video();
 
 void Inference_Camera();
 void Inference_Modnet();
+void Inference_demo1(int argc, char* argv[]);
 
 #endif

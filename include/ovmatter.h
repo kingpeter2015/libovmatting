@@ -54,19 +54,20 @@ namespace ovlib
 
         enum OV_MATTER_API FRAME_FORMAT
         {
-            FRAME_FOMAT_I420 = 0x00,
-            FRAME_FOMAT_BGR = 0x01,
-            FRAME_FOMAT_RGB = 0x02,
-            FRAME_FOMAT_GRAY = 0x03
+            FRAME_FOMAT_ERROR = 0x00,
+            FRAME_FOMAT_I420 = 0x01,
+            FRAME_FOMAT_BGR = 0x02,
+            FRAME_FOMAT_RGB = 0x03,
+            FRAME_FOMAT_GRAY = 0x04
         };
 
         struct OV_MATTER_API FrameData
         {
-            unsigned char* frame;            
-            unsigned int height;
-            unsigned int width;
-            FRAME_FORMAT format;
-            void* tag;
+            unsigned char* frame=0;            
+            unsigned int height=0;
+            unsigned int width=0;
+            FRAME_FORMAT format= FRAME_FOMAT_ERROR;
+            void* tag=0;
         };
 
         struct OV_MATTER_API MatterParams
