@@ -19,11 +19,12 @@ static void showUsage()
     std::cout << "    -dst     '<path>'             " << "Required. Path to destination video or image file" << std::endl;
     std::cout << "    -dst_bgr '<path>'             " << "Path to destination background image file for replacing." << std::endl;
     std::cout << "    -model   '<path>'             " << "Required. Path to the model (.xml) file." << std::endl;
-    std::cout << "    -dev     '<device>'           " << "Optional.Specify the target device for Inference System (the list of available devices is shown below).Default value is CPU. The application looks for a suitable plugin for the specified device." << std::endl;
+    std::cout << "    -dev     '<device>'           " << "Optional. Specify the target device for Inference System (the list of available devices is shown below).Default value is CPU. The application looks for a suitable plugin for the specified device." << std::endl;
     std::cout << "    -bin                          " << "Required. Path to the model (.bin) file." << std::endl;
     std::cout << "    -in_width                     " << "Optional. Width of input shape. Default: 320" << std::endl;
     std::cout << "    -in_height                    " << "Optional. Height of input shape. Default: 180" << std::endl;
     std::cout << "    -method                       " << "Required. Matting Method, 0-background v2;1-modnet" << std::endl;
+    std::cout << "    -interval                     " << "Optional. Frame Skip count." << std::endl;
 }
 
 void Inference_demo1(int argc, char* argv[])
@@ -94,6 +95,10 @@ void Inference_demo1(int argc, char* argv[])
             {
                 in_shape.width = atoi(argv[++i]);
             }
+            else if (!::strncmp(pc, "-interval", 9))
+            {
+                params.interval = atoi(argv[++i]);
+            }
             else if (!::strncmp(pc, "-method", 7))
             {
                 int nMethod = atoi(argv[++i]);
@@ -118,14 +123,17 @@ void Inference_demo1(int argc, char* argv[])
     params.input_shape = in_shape;
     params.path_to_model = model;
     params.path_to_bin = bin;
-    //params.method = ovlib::matter::METHOD_MODNET;
     params.is_async = false;
-    //params.effect = ovlib::matter::EFFECT_BLUR;
 
     if (params.method == ovlib::matter::METHOD_MODNET)
     {
+#if (_MSC_VER)
         params.path_to_model = ".\\share\\modnet.xml";
         params.path_to_bin = ".\\share\\modnet.bin";
+#else
+        params.path_to_model = "../share/modnet.xml";
+        params.path_to_bin = "../share/modnet.bin";
+#endif
         params.input_shape.width = 512;
         params.input_shape.height = 512;
     }

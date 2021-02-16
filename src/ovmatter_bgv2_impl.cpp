@@ -63,6 +63,7 @@ bool MatterBackgroundV2Impl::init(const MatterParams& param)
 		config.path_to_model = param.path_to_model;
 		config.path_to_bin = param.path_to_bin;
 		config.interval = param.interval;
+		_interval = param.interval;
 		_pCnn.reset(new CNN_Background_V2(config));
 
 		start(); //¿ªÆôÏß³Ì
