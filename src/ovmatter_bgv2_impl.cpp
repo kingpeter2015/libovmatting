@@ -87,7 +87,7 @@ bool MatterBackgroundV2Impl::init(const MatterParams &param)
 		config.interval = param.interval;
 		config.motion_threshold = param.threshold_motion;
 		m_nInterval = param.interval;
-		m_fMotionThreshold = param.threshold_motion;
+		m_fMotionThreshold = param.threshold_motion / 1000.0f;
 		_pCnn.reset(new CNN_Background_V2(config));
 
 		start(); //�����߳�
@@ -179,28 +179,7 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 	cv::Mat matCom;
 	cv::Mat matPha;
 
-	//1.check if frame changes
-	if (m_fMotionThreshold > 0.0f)
-	{
-		double preDiff;
-		double dblDiff = Utils_Ov::getSceneScore(_prevFrame, matFrame, preDiff);
-		bool bExist = (_preResult.find("pha") != _preResult.end());
-		if (dblDiff < m_fMotionThreshold && bExist)
-		{
-			matPha = _preResult["pha"];
-			compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
-			FrameData frameCom;
-			ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
-			FrameData frameAlpha;
-			ovlib::Utils_Ov::mat2FrameData(matPha, frameAlpha);
-			(*pResults)["com"] = frameCom;
-			(*pResults)["pha"] = frameAlpha;
-			return 0;
-		}
-	}
-	_prevFrame = matFrame.clone();
-
-	//2 skip Frame intervally 
+	//1 skip Frame intervally 
 	if (m_nInterval <= 0)
 	{
 		m_nInterval = 1;
@@ -219,6 +198,29 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 		(*pResults)["pha"] = frameAlpha;
 		return 0;
 	}
+
+	//2.check if frame changes
+	if (m_fMotionThreshold > 0.0f)
+	{		
+		double dblDiff = Utils_Ov::getSceneScore(_prevFrame, matFrame, m_preDiff);
+
+		bool bExist = (_preResult.find("pha") != _preResult.end());
+		if (dblDiff < m_fMotionThreshold && bExist)
+		{
+			matPha = _preResult["pha"];
+			compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
+			FrameData frameCom;
+			ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
+			FrameData frameAlpha;
+			ovlib::Utils_Ov::mat2FrameData(matPha, frameAlpha);
+			(*pResults)["com"] = frameCom;
+			(*pResults)["pha"] = frameAlpha;
+			return 0;
+		}
+	}
+	_prevFrame = matFrame.clone();
+
+	
 
 	//3. Infer result
 	{
