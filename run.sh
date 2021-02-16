@@ -8,12 +8,12 @@ export LD_LIBRARY_PATH=./:./build/:/opt/intel/openvino_2021/inference_engine/lib
          -bin ./share/pytorch_mobilenetv2.bin \
          -dev CPU \
          -src ./share/src.mp4 \
-         -src_bgr ./share/src.png \
+         -sbgr ./share/src.png \
          -dst ./share/dst.mp4 \
-         -dst_bgr ./share/replace.jpg \
+         -dbgr ./share/replace.jpg \
 		 -in_width 320 \
 		 -in_height 180 \
 		 -method 0 \
-		 -interval 5 \
-         -cpu_thread 4 \
-         -cpu_stream 2
+		 -interval 3 \
+         -cpu_thread 0 \
+         -cpu_stream 1

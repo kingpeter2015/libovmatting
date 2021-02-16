@@ -44,6 +44,7 @@ struct CNNConfig
     bool cpu_bind_thread; //default true
     int cpu_throughput_streams;    //default 1
     int interval;
+    float motion_threshold;
 };
 
 /**

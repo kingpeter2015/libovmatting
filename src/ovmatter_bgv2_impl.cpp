@@ -1,13 +1,21 @@
 #include "ovmatter_bgv2_impl.hpp"
 #include "ns_utils.hpp"
+#include <stdio.h>
+
+#if (_MSC_VER)
+#include <direct.h>
+#else
+#include <unistd.h>
+#endif
 
 using namespace ovlib::matter;
 using namespace InferenceEngine;
 
 REGISTER_MATTER_CLASS(METHOD_BACKGROUND_MATTING_V2, MatterBackgroundV2Impl)
 
-MatterBackgroundV2Impl::MatterBackgroundV2Impl() : _bInit(false), _interval(3), _elapse(0), _shape_output(cv::Size(1280,720))
+MatterBackgroundV2Impl::MatterBackgroundV2Impl() : _bInit(false), _elapse(0), _shape_output(cv::Size(1280, 720))
 {
+	m_nInterval = 1;
 }
 
 MatterBackgroundV2Impl::~MatterBackgroundV2Impl()
@@ -24,7 +32,7 @@ MatterBackgroundV2Impl::~MatterBackgroundV2Impl()
 	}
 }
 
-bool MatterBackgroundV2Impl::init(const MatterParams& param)
+bool MatterBackgroundV2Impl::init(const MatterParams &param)
 {
 	if (_bInit)
 	{
@@ -40,11 +48,11 @@ bool MatterBackgroundV2Impl::init(const MatterParams& param)
 	std::cout << ie.GetVersions(device) << std::endl;
 	if (device.find("CPU") != std::string::npos)
 	{
-		ie.SetConfig({ {PluginConfigParams::KEY_DYN_BATCH_ENABLED, PluginConfigParams::YES} }, "CPU");
+		ie.SetConfig({{PluginConfigParams::KEY_DYN_BATCH_ENABLED, PluginConfigParams::YES}}, "CPU");
 	}
 	else if (device.find("GPU") != std::string::npos)
 	{
-		ie.SetConfig({ {PluginConfigParams::KEY_DYN_BATCH_ENABLED, PluginConfigParams::YES} }, "GPU");
+		ie.SetConfig({{PluginConfigParams::KEY_DYN_BATCH_ENABLED, PluginConfigParams::YES}}, "GPU");
 	}
 	loadedDevices.insert(device);
 
@@ -52,7 +60,16 @@ bool MatterBackgroundV2Impl::init(const MatterParams& param)
 	if (!param.path_to_model.empty())
 	{
 		cv::Size shape(param.input_shape.width, param.input_shape.height);
-		CNNConfig config(param.path_to_model, param.path_to_bin, shape);
+
+		std::string sModelXml, sModelBin, sCwdPath;
+		sCwdPath = getcwd(NULL, 0);
+		std::cout << "current working path:" << sCwdPath << std::endl;
+
+		sModelXml = Utils_Ov::getRealPath(param.path_to_model);
+		sModelBin = Utils_Ov::getRealPath(param.path_to_bin);
+		std::cout << "xml path:" << sModelXml << ", bin path:" << sModelBin << std::endl;
+
+		CNNConfig config(sModelXml, sModelBin, shape);
 		config.deviceName = device;
 		config.is_async = param.is_async;
 		config.scale = param.scale;
@@ -63,7 +80,9 @@ bool MatterBackgroundV2Impl::init(const MatterParams& param)
 		config.path_to_model = param.path_to_model;
 		config.path_to_bin = param.path_to_bin;
 		config.interval = param.interval;
-		_interval = param.interval;
+		config.motion_threshold = param.threshold_motion;
+		m_nInterval = param.interval;
+		m_fMotionThreshold = param.threshold_motion;
 		_pCnn.reset(new CNN_Background_V2(config));
 
 		start(); //�����߳�
@@ -77,7 +96,7 @@ bool MatterBackgroundV2Impl::init(const MatterParams& param)
 	return _bInit;
 }
 
-int MatterBackgroundV2Impl::process(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape, std::map<std::string, FrameData>* pResults)
+int MatterBackgroundV2Impl::process(FrameData &frame, FrameData &bgr, FrameData &bgrReplace, const ovlib::matter::Shape &shape, std::map<std::string, FrameData> *pResults)
 {
 	if (!_pCnn)
 	{
@@ -91,13 +110,13 @@ int MatterBackgroundV2Impl::process(FrameData& frame, FrameData& bgr, FrameData&
 	return doWork_sync(frame, bgr, bgrReplace, shape, pResults);
 }
 
-int MatterBackgroundV2Impl::doWork_sync_V2(cv::Mat& frame, cv::Mat& bgr, cv::Mat& bgrReplace, cv::Size& out_shape, cv::Mat& matCom, cv::Mat& matAlpha)
+int MatterBackgroundV2Impl::doWork_sync_V2(cv::Mat &frame, cv::Mat &bgr, cv::Mat &bgrReplace, cv::Size &out_shape, cv::Mat &matCom, cv::Mat &matAlpha)
 {
 	if (frame.empty())
 	{
 		matCom = bgrReplace;
 		return -1;
-	}	
+	}
 
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
@@ -107,6 +126,7 @@ int MatterBackgroundV2Impl::doWork_sync_V2(cv::Mat& frame, cv::Mat& bgr, cv::Mat
 		_pCnn->submitRequest();
 		_pCnn->wait();
 		_matResult = _pCnn->fetchResults();
+		m_nInferCount++;
 		if (_matResult.size() <= 0)
 		{
 			return -1;
@@ -129,13 +149,10 @@ int MatterBackgroundV2Impl::doWork_sync_V2(cv::Mat& frame, cv::Mat& bgr, cv::Mat
 /// <param name="shape"></param>
 /// <param name="pResults"></param>
 /// <returns></returns>
-int MatterBackgroundV2Impl::doWork_sync(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& shape, std::map<std::string, FrameData>* pResults)
+int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameData &bgrReplace, const ovlib::matter::Shape &shape, std::map<std::string, FrameData> *pResults)
 {
 	int ret = -1;
-	if (frame.frame == 0 || bgr.frame == 0 || bgrReplace.frame == 0
-		|| frame.width == 0 || frame.height == 0
-		|| bgr.width == 0 || bgr.height == 0
-		|| bgrReplace.width == 0 || bgrReplace.height == 0)
+	if (frame.frame == 0 || bgr.frame == 0 || bgrReplace.frame == 0 || frame.width == 0 || frame.height == 0 || bgr.width == 0 || bgr.height == 0 || bgrReplace.width == 0 || bgrReplace.height == 0)
 	{
 		return ret;
 	}
@@ -145,6 +162,7 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData& frame, FrameData& bgr, FrameD
 		return -1;
 	}
 	static int l_frame_count_sync = 0;
+	l_frame_count_sync++;
 
 	cv::Mat matFrame;
 	ovlib::Utils_Ov::frameData2Mat(frame, matFrame);
@@ -152,25 +170,17 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData& frame, FrameData& bgr, FrameD
 	ovlib::Utils_Ov::frameData2Mat(bgr, matBgr);
 	cv::Mat matBgrReplace;
 	ovlib::Utils_Ov::frameData2Mat(bgrReplace, matBgrReplace);
-
-	/*
-	double preDiff;
-	double dblDiff = Utils_Ov::getSceneScore(_prevFrame, matFrame, preDiff);
-	*/
-	_prevFrame = matFrame.clone();
 	cv::Size out_shape(shape.width, shape.height);
+	cv::Mat matCom;
+	cv::Mat matPha;
 
+	//1.check if frame changes
+	if (m_fMotionThreshold > 0.0f)
 	{
-		cv::Mat matCom;
-		cv::Mat matPha;
-		l_frame_count_sync++;
-		if (_interval <= 0)
-		{
-			_interval = 1;
-		}
-		l_frame_count_sync = l_frame_count_sync % _interval;
+		double preDiff;
+		double dblDiff = Utils_Ov::getSceneScore(_prevFrame, matFrame, preDiff);
 		bool bExist = (_preResult.find("pha") != _preResult.end());
-		if (l_frame_count_sync == 0 && bExist)
+		if (dblDiff < m_fMotionThreshold && bExist)
 		{
 			matPha = _preResult["pha"];
 			compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
@@ -182,12 +192,37 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData& frame, FrameData& bgr, FrameD
 			(*pResults)["pha"] = frameAlpha;
 			return 0;
 		}
+	}
+	_prevFrame = matFrame.clone();
 
+	//2 skip Frame intervally 
+	if (m_nInterval <= 0)
+	{
+		m_nInterval = 1;
+	}
+	l_frame_count_sync = l_frame_count_sync % m_nInterval;
+	bool bExist = (_preResult.find("pha") != _preResult.end());
+	if (l_frame_count_sync != 0 && bExist)
+	{
+		matPha = _preResult["pha"];
+		compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
+		FrameData frameCom;
+		ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
+		FrameData frameAlpha;
+		ovlib::Utils_Ov::mat2FrameData(matPha, frameAlpha);
+		(*pResults)["com"] = frameCom;
+		(*pResults)["pha"] = frameAlpha;
+		return 0;
+	}
+
+	//3. Infer result
+	{
 		_pCnn->enqueue("src", matFrame);
-		_pCnn->enqueue("bgr", matBgr); 
+		_pCnn->enqueue("bgr", matBgr);
 		_pCnn->submitRequest();
 		_pCnn->wait();
 		_matResult = _pCnn->fetchResults();
+		m_nInferCount++;
 		if (_matResult.size() <= 0)
 		{
 			return -1;
@@ -210,9 +245,9 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData& frame, FrameData& bgr, FrameD
 	return 0;
 }
 
-void MatterBackgroundV2Impl::compose(cv::Mat& src, cv::Mat& replace, cv::Mat& alpha, cv::Mat& com, cv::Size& out_shape)
+void MatterBackgroundV2Impl::compose(cv::Mat &src, cv::Mat &replace, cv::Mat &alpha, cv::Mat &com, cv::Size &out_shape)
 {
-	
+
 	if (out_shape.height == 0 || out_shape.width == 0)
 	{
 		out_shape.width = 1280;
@@ -235,10 +270,10 @@ void MatterBackgroundV2Impl::compose(cv::Mat& src, cv::Mat& replace, cv::Mat& al
 	{
 		cv::resize(alpha, alpha, l_shape, 0, 0, cv::INTER_CUBIC);
 	}
-	unsigned char* dataMatPha = alpha.data;
-	unsigned char* dataMatCom = com.data;
-	unsigned char* dataMatFrame1 = matSrc.data;
-	unsigned char* dataMatBgr2 = matReplace.data;
+	unsigned char *dataMatPha = alpha.data;
+	unsigned char *dataMatCom = com.data;
+	unsigned char *dataMatFrame1 = matSrc.data;
+	unsigned char *dataMatBgr2 = matReplace.data;
 	int num_channels = 3;
 	int image_size = alpha.rows * alpha.cols;
 	for (size_t pid = 0; pid < image_size; pid++)
@@ -264,17 +299,16 @@ void MatterBackgroundV2Impl::compose(cv::Mat& src, cv::Mat& replace, cv::Mat& al
 			*(dataMatCom + rowC + 1) = *(dataMatFrame1 + rowC + 1) * falpha + *(dataMatBgr2 + rowC + 1) * (1 - falpha);
 			*(dataMatCom + rowC) = *(dataMatFrame1 + rowC) * falpha + *(dataMatBgr2 + rowC) * (1 - falpha);
 		}
-	}	
+	}
 }
 
 /****************************************Asynchronous Process*******************************************************/
-void MatterBackgroundV2Impl::setStrategy_async(bool bAuto, int interval, const Shape& input_shape, const Shape& out_shape)
+void MatterBackgroundV2Impl::setStrategy_async(bool bAuto, int interval, const Shape &input_shape, const Shape &out_shape)
 {
-
 }
 
-void MatterBackgroundV2Impl::setBackground_async(FrameData& bgrReplace, MATTER_EFFECT effect, const FrameData& bgr)
-{	
+void MatterBackgroundV2Impl::setBackground_async(FrameData &bgrReplace, MATTER_EFFECT effect, const FrameData &bgr)
+{
 	cv::Mat matReplace, matBgr;
 	ovlib::Utils_Ov::frameData2Mat(bgrReplace, matReplace);
 	FrameData bgrFd = bgr;
@@ -297,10 +331,10 @@ void MatterBackgroundV2Impl::setBackground_async(FrameData& bgrReplace, MATTER_E
 	}
 }
 
-int MatterBackgroundV2Impl::process_async(FrameData& frame, FrameData& frameCom, FrameData& frameAlpha, const ovlib::matter::Shape& out_shape)
+int MatterBackgroundV2Impl::process_async(FrameData &frame, FrameData &frameCom, FrameData &frameAlpha, const ovlib::matter::Shape &out_shape)
 {
 	static int l_frame_count = 0;
-	//1.put input frame into input_queue 
+	//1.put input frame into input_queue
 	if (frame.frame == 0 || frame.height == 0 || frame.width == 0)
 	{
 		//do nothing
@@ -308,11 +342,11 @@ int MatterBackgroundV2Impl::process_async(FrameData& frame, FrameData& frameCom,
 	else
 	{
 		l_frame_count++;
-		if (_interval <= 0)
+		if (m_nInterval <= 0)
 		{
-			_interval = 1;
+			m_nInterval = 1;
 		}
-		l_frame_count = l_frame_count % _interval;
+		l_frame_count = l_frame_count % m_nInterval;
 		if (l_frame_count == 0)
 		{
 			cv::Mat matFrame;
@@ -334,7 +368,7 @@ int MatterBackgroundV2Impl::process_async(FrameData& frame, FrameData& frameCom,
 		frameCom = frame;
 		return -1;
 	}
-	
+
 	if (_frame_replace.rows != _shape_output.height || _frame_replace.cols != _shape_output.width)
 	{
 		cv::resize(_frame_replace, _frame_replace, _shape_output);
@@ -345,7 +379,7 @@ int MatterBackgroundV2Impl::process_async(FrameData& frame, FrameData& frameCom,
 	{
 		Utils_Ov::mat2FrameData(_frame_replace, frameCom);
 		frameAlpha.frame = 0;
-		return 1;	
+		return 1;
 	}
 
 	/*
@@ -367,7 +401,7 @@ int MatterBackgroundV2Impl::process_async(FrameData& frame, FrameData& frameCom,
 	MattingObject result;
 	_queue_output.front(result);
 	Utils_Ov::mat2FrameData(result.com, frameCom);
-	Utils_Ov::mat2FrameData(result.pha, frameAlpha);	
+	Utils_Ov::mat2FrameData(result.pha, frameAlpha);
 
 	return 0;
 }
@@ -379,7 +413,7 @@ void MatterBackgroundV2Impl::run()
 	{
 		Utils_Ov::sleep(lSleep);
 		if (_queue_input.size() <= 0)
-		{			
+		{
 			continue;
 		}
 
@@ -420,6 +454,5 @@ void MatterBackgroundV2Impl::run()
 			_queue_output.push(obj);
 			_elapse = _bencher.Elapse();
 		}
-
 	}
 }

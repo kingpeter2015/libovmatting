@@ -1,13 +1,20 @@
 #include "ovmatter_modnet_impl.hpp"
 #include "ns_utils.hpp"
 
+#if (_MSC_VER)
+#include <direct.h>
+#else
+#include <unistd.h>
+#endif
+
 using namespace ovlib::matter;
 using namespace InferenceEngine;
 
 REGISTER_MATTER_CLASS(METHOD_MODNET, MatterModnetImpl)
 
-MatterModnetImpl::MatterModnetImpl() : _bInit(false), _interval(3), _elapse(0), _shape_output(cv::Size(1280,720))
+MatterModnetImpl::MatterModnetImpl() : _bInit(false), _elapse(0), _shape_output(cv::Size(1280,720))
 {
+	m_nInterval = 1;
 }
 
 MatterModnetImpl::~MatterModnetImpl()
@@ -44,7 +51,16 @@ bool MatterModnetImpl::init(const MatterParams& param)
 	if (!param.path_to_model.empty())
 	{
 		cv::Size shape(param.input_shape.width, param.input_shape.height);
-		CNNConfig config(param.path_to_model, param.path_to_bin, shape);
+		
+		std::string sModelXml, sModelBin, sCwdPath;
+		sCwdPath = getcwd(NULL, 0);
+		std::cout << "current working path:" << sCwdPath << std::endl;
+
+		sModelXml = Utils_Ov::getRealPath(param.path_to_model);
+		sModelBin = Utils_Ov::getRealPath(param.path_to_bin);
+		std::cout << "xml path:" << sModelXml << ", bin path:" << sModelBin << std::endl;
+
+		CNNConfig config(sModelXml, sModelBin, shape);
 		config.deviceName = device;
 		config.is_async = param.is_async;
 		config.scale = param.scale;
@@ -55,10 +71,12 @@ bool MatterModnetImpl::init(const MatterParams& param)
 		config.path_to_model = param.path_to_model;
 		config.path_to_bin = param.path_to_bin;
 		config.interval = param.interval;
-		_interval = param.interval;
+		config.motion_threshold = param.threshold_motion;
+		m_nInterval = param.interval;
+		m_fMotionThreshold = param.threshold_motion;
 		_pCnn.reset(new CNN_Modnet(config));
 
-		//start(); //¿ªÆôÏß³Ì
+		start(); //ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½
 
 		_bInit = true;
 	}
@@ -108,6 +126,7 @@ int MatterModnetImpl::doWork_sync(FrameData& frame, FrameData& bgr, FrameData& b
 	}
 
 	static int l_frame_count_sync = 0;
+	l_frame_count_sync++;
 
 
 	cv::Mat matFrame;
@@ -116,20 +135,17 @@ int MatterModnetImpl::doWork_sync(FrameData& frame, FrameData& bgr, FrameData& b
 	ovlib::Utils_Ov::frameData2Mat(bgr, matBgr);
 	cv::Mat matBgrReplace;
 	ovlib::Utils_Ov::frameData2Mat(bgrReplace, matBgrReplace);
-
 	cv::Size out_shape(shape.width, shape.height);
+	cv::Mat matCom;
+	cv::Mat matPha;
 
+	//1.check if frame changes
+	if (m_fMotionThreshold > 0.0f)
 	{
-		cv::Mat matCom;
-		cv::Mat matPha;
-		l_frame_count_sync++;
-		if (_interval <= 0)
-		{
-			_interval = 1;
-		}
-		l_frame_count_sync = l_frame_count_sync % _interval;
+		double preDiff;
+		double dblDiff = Utils_Ov::getSceneScore(_prevFrame, matFrame, preDiff);
 		bool bExist = (_preResult.find("pha") != _preResult.end());
-		if (l_frame_count_sync == 0 && bExist)
+		if (dblDiff < m_fMotionThreshold && bExist)
 		{
 			matPha = _preResult["pha"];
 			compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
@@ -141,12 +157,36 @@ int MatterModnetImpl::doWork_sync(FrameData& frame, FrameData& bgr, FrameData& b
 			(*pResults)["pha"] = frameAlpha;
 			return 0;
 		}
+	}
+	_prevFrame = matFrame.clone();
 
+	//2 skip Frame intervally 
+	if (m_nInterval <= 0)
+	{
+		m_nInterval = 1;
+	}
+	l_frame_count_sync = l_frame_count_sync % m_nInterval;
+	bool bExist = (_preResult.find("pha") != _preResult.end());
+	if (l_frame_count_sync != 0 && bExist)
+	{
+		matPha = _preResult["pha"];
+		compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
+		FrameData frameCom;
+		ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
+		FrameData frameAlpha;
+		ovlib::Utils_Ov::mat2FrameData(matPha, frameAlpha);
+		(*pResults)["com"] = frameCom;
+		(*pResults)["pha"] = frameAlpha;
+		return 0;
+	}
+
+	//3. Infer result
+	{
 		_pCnn->enqueue("input.1", matFrame);
-		//_pCnn->enqueue("bgr", matBgr); 
 		_pCnn->submitRequest();
 		_pCnn->wait();
 		_matResult = _pCnn->fetchResults();
+		m_nInferCount++;
 		if (_matResult.size() <= 0)
 		{
 			return -1;
@@ -268,11 +308,11 @@ int MatterModnetImpl::process_async(FrameData& frame, FrameData& frameCom, Frame
 	else
 	{
 		l_frame_count++;
-		if (_interval <= 0)
+		if (m_nInterval <= 0)
 		{
-			_interval = 1;
+			m_nInterval = 1;
 		}
-		l_frame_count = l_frame_count % _interval;
+		l_frame_count = l_frame_count % m_nInterval;
 		if (l_frame_count == 0)
 		{
 			cv::Mat matFrame;

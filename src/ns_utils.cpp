@@ -226,3 +226,15 @@ double Utils_Ov::getSceneScore(cv::Mat prev_frame, cv::Mat frame, double& prev_m
 
     return ret;
 }
+
+std::string Utils_Ov::getRealPath(std::string relPath)
+{
+    char dir[1024] = {0};
+#if (_MSC_VER)
+    _fullpath(dir, relPath.c_str(), 1024);
+#else
+    realpath(relPath.c_str(), dir);
+#endif
+    std::string result_str = dir;
+    return result_str;
+}

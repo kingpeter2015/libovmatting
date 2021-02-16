@@ -3,9 +3,29 @@
 
 #include <inference_engine.hpp>
 
+#if (_MSC_VER)
+#include <direct.h>
+#else
+#include <unistd.h>
+#endif
+
+
+
 using namespace InferenceEngine;
 
 using namespace ovlib::matter;
+
+std::string getRealPath(std::string relPath)
+{
+    char dir[1024] = {0};
+#if (_MSC_VER)
+    _fullpath(dir, relPath.c_str(), 1024);
+#else
+    realpath(relPath.c_str(), dir);
+#endif
+    std::string result_str = dir;
+    return result_str;
+}
 
 static void showUsage() 
 {
@@ -15,9 +35,9 @@ static void showUsage()
     std::cout << std::endl;
     std::cout << "    -h                            " << "Print a usage message." << std::endl;
     std::cout << "    -src     '<path>'             " << "Required. Path to a video or image file" << std::endl;
-    std::cout << "    -src_bgr '<path>'             " << "Path to source video background image file." << std::endl;
+    std::cout << "    -sbgr '<path>'             " << "Path to source video background image file." << std::endl;
     std::cout << "    -dst     '<path>'             " << "Required. Path to destination video or image file" << std::endl;
-    std::cout << "    -dst_bgr '<path>'             " << "Path to destination background image file for replacing." << std::endl;
+    std::cout << "    -dbgr '<path>'             " << "Path to destination background image file for replacing." << std::endl;
     std::cout << "    -model   '<path>'             " << "Required. Path to the model (.xml) file." << std::endl;
     std::cout << "    -dev     '<device>'           " << "Optional. Specify the target device for Inference System (the list of available devices is shown below).Default value is CPU. The application looks for a suitable plugin for the specified device." << std::endl;
     std::cout << "    -bin                          " << "Required. Path to the model (.bin) file." << std::endl;
@@ -27,6 +47,7 @@ static void showUsage()
     std::cout << "    -interval                     " << "Optional. Frame Skip count." << std::endl;
     std::cout << "    -cpu_thread                   " << "Optional. CPU Thread Number." << std::endl;
     std::cout << "    -cpu_stream                   " << "Optional. CPU Streams Throughput." << std::endl;
+    std::cout << "    -motion_f                     " << "Optional. Motion threshold." << std::endl;
 }
 
 void Inference_demo1(int argc, char* argv[])
@@ -67,21 +88,21 @@ void Inference_demo1(int argc, char* argv[])
             }
             else if (!::strncmp(pc, "-model", 6))
             {
-                params.path_to_model = argv[++i];
+                model = argv[++i];
             }
             else if (!::strncmp(pc, "-bin", 4))
             {
-                params.path_to_bin = argv[++i];
+                bin = argv[++i];
             }
             else if (!::strncmp(pc, "-src", 4))
             {
                 src = argv[++i];
             }
-            else if (!::strncmp(pc, "-src_bgr", 8))
+            else if (!::strncmp(pc, "-sbgr", 5))
             {
                 bgr = argv[++i];
             }
-            else if (!::strncmp(pc, "-dst_bgr", 8))
+            else if (!::strncmp(pc, "-dbgr", 5))
             {
                 bgr2 = argv[++i];
             }
@@ -95,7 +116,7 @@ void Inference_demo1(int argc, char* argv[])
             }
             else if (!::strncmp(pc, "-in_height", 10))
             {
-                in_shape.width = atoi(argv[++i]);
+                in_shape.height = atoi(argv[++i]);
             }
             else if (!::strncmp(pc, "-interval", 9))
             {
@@ -108,6 +129,10 @@ void Inference_demo1(int argc, char* argv[])
             else if (!::strncmp(pc, "-cpu_stream", 11))
             {
                 params.cpu_throughput_streams = atoi(argv[++i]);
+            }
+            else if (!::strncmp(pc, "-motion_f", 9))
+            {
+                params.threshold_motion = atof(argv[++i]);
             }
             else if (!::strncmp(pc, "-method", 7))
             {
@@ -129,6 +154,13 @@ void Inference_demo1(int argc, char* argv[])
         }
     }
 
+    model = getRealPath(model);
+    bin = getRealPath(bin);
+    src = getRealPath(src);
+    dst = getRealPath(dst);
+    bgr = getRealPath(bgr);
+    bgr2 = getRealPath(bgr2);
+    std::cout << "(model,bin,src,dst,bgr,bgr2):\n" << model << "\n" << bin << "\n" << src << "\n" << dst << "\n" << bgr << "\n" << bgr2 << std::endl;
     
     params.input_shape = in_shape;
     params.path_to_model = model;
@@ -198,8 +230,10 @@ void Inference_demo1(int argc, char* argv[])
         }
 
         framecnt++;
-        {            
-            ovlib::TimerCounter estimate("Phase...");
+        {
+            std::stringstream ss;
+            ss << "Frame No." << framecnt << "...";
+            ovlib::TimerCounter estimate(ss.str());
             FrameData frame_main;
             ovlib::Utils_Ov::mat2FrameData(frame, frame_main);
         
@@ -223,6 +257,9 @@ void Inference_demo1(int argc, char* argv[])
 
     delete[] frame_bgr.frame;
     delete[] frame_bgr_replace.frame;
+
+    int nInfer = pChan->getInferCount();
+    std::cout << "Infer Count:" << nInfer << std::endl; 
 
     std::cout << "Speed:" << framecnt * 1000 / (lElapse) << " FPS" << std::endl; 
 

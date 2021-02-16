@@ -39,8 +39,14 @@ namespace ovlib
 			MatterBaseImpl() {};
 			virtual ~MatterBaseImpl() {};
 			virtual bool init(const MatterParams& params) = 0;
+			virtual int getInferCount(){ return m_nInferCount; }
 
 			MatterParams _params;
+		
+		protected:
+			int m_nInterval;
+			float m_fMotionThreshold;
+			int m_nInferCount = 0;
 		};
 
 		typedef MatterBaseImpl* (*NewInstancePt)();
@@ -79,7 +85,7 @@ namespace ovlib
 			{
 				dynCreateMap[className] = np;
 				dynCreateMapType[code] = np;
-			}
+			}		
 
 		private:
 			static std::map<std::string, NewInstancePt> dynCreateMap;

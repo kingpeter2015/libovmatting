@@ -47,6 +47,7 @@ int MatterChannel::getDefMatterParams(MatterParams& params)
 
 	params.is_async = false;
 	params.interval = 1;
+	params.threshold_motion = -0.1f;
 
 	return 0;	
 }
