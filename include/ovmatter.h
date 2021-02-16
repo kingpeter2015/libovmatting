@@ -70,6 +70,8 @@ namespace ovlib
             void* tag=0;
         };
 
+        const FrameData NullFrame;
+
         struct OV_MATTER_API MatterParams
         {       
             MattingMethod method;
@@ -105,7 +107,7 @@ namespace ovlib
             virtual int process(FrameData& frame, FrameData& bgr, FrameData& bgrReplace, const ovlib::matter::Shape& out_shape, std::map<std::string, FrameData>* pResults = 0) = 0;
 
             virtual void setStrategy_async(bool bAuto = true, int interval = 0, const Shape& input_shape = { 0,0 }, const Shape& out_shape = {0,0}) = 0;
-            virtual void setBackground_async(FrameData& bgrReplace, MATTER_EFFECT = EFFECT_NONE, const FrameData& bgr = { 0, 0, 0, FRAME_FOMAT_BGR, 0 }) = 0;
+            virtual void setBackground_async(FrameData& bgrReplace, MATTER_EFFECT = EFFECT_NONE, const FrameData& bgr = NullFrame) = 0;
             virtual int process_async(FrameData& frame, FrameData& frameCom, FrameData& frameAlpha, const ovlib::matter::Shape& out_shape = { 0,0 }) = 0;
         };
     }; // namespace matter
