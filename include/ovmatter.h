@@ -87,6 +87,7 @@ namespace ovlib
             int cpu_throughput_streams;    //default 1
 
             bool is_async;
+            int interval;
 
             Shape input_shape;
 

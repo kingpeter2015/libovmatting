@@ -46,6 +46,7 @@ int MatterChannel::getDefMatterParams(MatterParams& params)
 	params.input_shape.height = 144;
 
 	params.is_async = false;
+	params.interval = 1;
 
 	return 0;	
 }

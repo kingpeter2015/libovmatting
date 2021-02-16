@@ -54,6 +54,7 @@ bool MatterModnetImpl::init(const MatterParams& param)
 		config.cpu_throughput_streams = param.cpu_throughput_streams;
 		config.path_to_model = param.path_to_model;
 		config.path_to_bin = param.path_to_bin;
+		config.interval = param.interval;
 		_pCnn.reset(new CNN_Modnet(config));
 
 		//start(); //¿ªÆôÏß³Ì
@@ -277,6 +278,7 @@ int MatterModnetImpl::process_async(FrameData& frame, FrameData& frameCom, Frame
 		frameAlpha.frame = 0;
 		return 1;	
 	}
+	/*
 	else if (_queue_output.size() == 1)
 	{
 		MattingObject f;
@@ -284,13 +286,18 @@ int MatterModnetImpl::process_async(FrameData& frame, FrameData& frameCom, Frame
 		Utils_Ov::mat2FrameData(f.com, frameCom);
 		Utils_Ov::mat2FrameData(f.pha, frameAlpha);
 		return 1;
-	}
+	}*/
 
+	while (_queue_output.size() > 1)
+	{
+		MattingObject f;
+		_queue_output.pop(f);
+	}
 	// 4. if output queue is not empty, return first item in the output queue
 	MattingObject result;
-	_queue_output.pop(result);
+	_queue_output.front(result);
 	Utils_Ov::mat2FrameData(result.com, frameCom);
-	Utils_Ov::mat2FrameData(result.pha, frameAlpha);	
+	Utils_Ov::mat2FrameData(result.pha, frameAlpha);
 
 	return 0;
 }
@@ -316,11 +323,7 @@ void MatterModnetImpl::run()
 				_pCnn->setAsync(true);
 			}
 
-			_pCnn->enqueue("src", frame);
-			if (!_pCnn->isBgrEnqueued())
-			{
-				_pCnn->enqueue("bgr", _frame_bgr);
-			}
+			_pCnn->enqueue("input.1", frame);
 			_pCnn->submitRequest();
 			_pCnn->wait();
 			_matResult = _pCnn->fetchResults();

@@ -43,6 +43,7 @@ struct CNNConfig
     int cpu_threads_num;    //default 0
     bool cpu_bind_thread; //default true
     int cpu_throughput_streams;    //default 1
+    int interval;
 };
 
 /**
