@@ -53,7 +53,11 @@ bool MatterModnetImpl::init(const MatterParams& param)
 		cv::Size shape(param.input_shape.width, param.input_shape.height);
 		
 		std::string sModelXml, sModelBin, sCwdPath;
+#if (_MSC_VER)
+		sCwdPath = _getcwd(NULL, 0);
+#else
 		sCwdPath = getcwd(NULL, 0);
+#endif
 		std::cout << "current working path:" << sCwdPath << std::endl;
 
 		sModelXml = Utils_Ov::getRealPath(param.path_to_model);
