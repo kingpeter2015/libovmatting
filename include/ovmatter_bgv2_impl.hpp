@@ -78,6 +78,7 @@ namespace ovlib
 			cv::Size _shape_input;
 			cv::Size _shape_output;
 			int _interval;
+			std::map<std::string, cv::Mat> _preResult;
 
 		};
 	}; // namespace matter

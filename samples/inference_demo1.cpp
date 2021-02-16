@@ -25,6 +25,8 @@ static void showUsage()
     std::cout << "    -in_height                    " << "Optional. Height of input shape. Default: 180" << std::endl;
     std::cout << "    -method                       " << "Required. Matting Method, 0-background v2;1-modnet" << std::endl;
     std::cout << "    -interval                     " << "Optional. Frame Skip count." << std::endl;
+    std::cout << "    -cpu_thread                   " << "Optional. CPU Thread Number." << std::endl;
+    std::cout << "    -cpu_stream                   " << "Optional. CPU Streams Throughput." << std::endl;
 }
 
 void Inference_demo1(int argc, char* argv[])
@@ -99,6 +101,14 @@ void Inference_demo1(int argc, char* argv[])
             {
                 params.interval = atoi(argv[++i]);
             }
+            else if (!::strncmp(pc, "-cpu_thread", 11))
+            {
+                params.cpu_threads_num = atoi(argv[++i]);
+            }
+            else if (!::strncmp(pc, "-cpu_stream", 11))
+            {
+                params.cpu_throughput_streams = atoi(argv[++i]);
+            }
             else if (!::strncmp(pc, "-method", 7))
             {
                 int nMethod = atoi(argv[++i]);
@@ -131,8 +141,8 @@ void Inference_demo1(int argc, char* argv[])
         params.path_to_model = ".\\share\\modnet.xml";
         params.path_to_bin = ".\\share\\modnet.bin";
 #else
-        params.path_to_model = "../share/modnet.xml";
-        params.path_to_bin = "../share/modnet.bin";
+        params.path_to_model = "./share/modnet.xml";
+        params.path_to_bin = "./share/modnet.bin";
 #endif
         params.input_shape.width = 512;
         params.input_shape.height = 512;
