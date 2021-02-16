@@ -182,6 +182,18 @@ void Utils_Ov::sleep(long milliseconds)
     std::this_thread::sleep_for(dura);
 }
 
+#define OVMIN(a, b) ((a) > (b) ? (b) : (a))
+
+inline const float av_clipf(float a, float amin, float amax)
+{
+    if (a < amin)
+        return amin;
+    else if (a > amax)
+        return amax;
+    else
+        return a;
+}
+
 double Utils_Ov::getSceneScore(cv::Mat prev_frame, cv::Mat frame, double& prev_mafd)
 {
     double ret = 0.0f;

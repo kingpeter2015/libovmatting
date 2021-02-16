@@ -47,6 +47,7 @@ void Inference_Modnet()
 	params.path_to_bin = bin;
 	params.method = ovlib::matter::METHOD_MODNET;
 	params.is_async = false;
+	params.interval = 3;
 	//params.effect = ovlib::matter::EFFECT_BLUR;
 	MatterChannel* pChan = MatterChannel::create(params);
 	if (!pChan)

@@ -7,7 +7,7 @@ int main(int argc, char *argv[])
     {
         //Inference_Camera();
         //Inference_Video();
-        //Inference_Modnet();
+        Inference_Modnet();
         Inference_demo1(argc, argv);
     }
     catch (const std::exception &ex)

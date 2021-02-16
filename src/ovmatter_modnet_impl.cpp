@@ -106,6 +106,9 @@ int MatterModnetImpl::doWork_sync(FrameData& frame, FrameData& bgr, FrameData& b
 		return -1;
 	}
 
+	static int l_frame_count_sync = 0;
+
+
 	cv::Mat matFrame;
 	ovlib::Utils_Ov::frameData2Mat(frame, matFrame);
 	cv::Mat matBgr;
@@ -116,6 +119,28 @@ int MatterModnetImpl::doWork_sync(FrameData& frame, FrameData& bgr, FrameData& b
 	cv::Size out_shape(shape.width, shape.height);
 
 	{
+		cv::Mat matCom;
+		cv::Mat matPha;
+		l_frame_count_sync++;
+		if (_interval <= 0)
+		{
+			_interval = 1;
+		}
+		l_frame_count_sync = l_frame_count_sync % _interval;
+		bool bExist = (_preResult.find("pha") != _preResult.end());
+		if (l_frame_count_sync == 0 && bExist)
+		{
+			matPha = _preResult["pha"];
+			compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
+			FrameData frameCom;
+			ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
+			FrameData frameAlpha;
+			ovlib::Utils_Ov::mat2FrameData(matPha, frameAlpha);
+			(*pResults)["com"] = frameCom;
+			(*pResults)["pha"] = frameAlpha;
+			return 0;
+		}
+
 		_pCnn->enqueue("input.1", matFrame);
 		//_pCnn->enqueue("bgr", matBgr); 
 		_pCnn->submitRequest();
@@ -126,8 +151,8 @@ int MatterModnetImpl::doWork_sync(FrameData& frame, FrameData& bgr, FrameData& b
 			return -1;
 		}
 
-		cv::Mat matPha = _matResult[0].pha;
-		cv::Mat matCom;
+		matPha = _matResult[0].pha;
+		
 		compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
 
 		FrameData frameCom;
@@ -136,6 +161,9 @@ int MatterModnetImpl::doWork_sync(FrameData& frame, FrameData& bgr, FrameData& b
 		ovlib::Utils_Ov::mat2FrameData(_matResult[0].pha, frameAlpha);
 		(*pResults)["com"] = frameCom;
 		(*pResults)["pha"] = frameAlpha;
+
+		_preResult["com"] = matCom;
+		_preResult["pha"] = _matResult[0].pha;
 	}
 
 	return 0;
