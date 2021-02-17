@@ -11,7 +11,41 @@
 using namespace ovlib::matter;
 using namespace InferenceEngine;
 
+
+static void compose_op(cv::Mat &src, cv::Mat &replace, cv::Mat &alpha, cv::Mat &com, cv::Size &out_shape)
+{
+
+	if (out_shape.height == 0 || out_shape.width == 0)
+	{
+		out_shape.width = 1280;
+		out_shape.height = 720;
+	}
+	cv::Size l_shape = out_shape;
+	com = cv::Mat::zeros(l_shape, CV_8UC3);
+	cv::Mat matSrc, matReplace;
+	matSrc = src.clone();
+	matReplace = replace.clone();
+	if (matSrc.rows != l_shape.height || matSrc.cols != l_shape.width)
+	{
+		cv::resize(matSrc, matSrc, l_shape);
+	}
+	if (matReplace.rows != l_shape.height || matReplace.cols != l_shape.width)
+	{
+		cv::resize(matReplace, matReplace, l_shape);
+	}
+	if (alpha.rows != l_shape.height || alpha.cols != l_shape.width)
+	{
+		cv::resize(alpha, alpha, l_shape, 0, 0, cv::INTER_CUBIC);
+	}
+	cv::Mat matPha;
+	cv::cvtColor(alpha, matPha, cv::COLOR_GRAY2BGR);
+	com = matSrc.mul(matPha / 255.0) + matReplace.mul((255 - matPha)/255.0);
+}
+
+
 REGISTER_MATTER_CLASS(METHOD_BACKGROUND_MATTING_V2, MatterBackgroundV2Impl)
+
+
 
 MatterBackgroundV2Impl::MatterBackgroundV2Impl() : _bInit(false), _elapse(0), _shape_output(cv::Size(1280, 720))
 {
@@ -205,14 +239,17 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 	//2.check if frame changes
 	if (m_fMotionThreshold > 0.0f)
 	{		
+		
 		double dblDiff = Utils_Ov::getSceneScore(_prevFrame, matFrame, m_preDiff);
 
 		bool bExist = (_preResult.find("pha") != _preResult.end());
 		if (dblDiff < m_fMotionThreshold && bExist && l_no_infer_count < m_nForceInferLimit)
-		{
+		{	
+			//ovlib::TimerCounter estimate("compose_op()...");
 			l_no_infer_count++;
 			matPha = _preResult["pha"];
-			compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
+			//compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
+			compose_op(matFrame, matBgrReplace, matPha, matCom, out_shape);
 			FrameData frameCom;
 			ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
 			FrameData frameAlpha;
@@ -226,6 +263,7 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 
 	//3. Infer result
 	{
+		//ovlib::TimerCounter estimate("Infer...");
 		l_no_infer_count = 0;
 		_pCnn->enqueue("src", matFrame);
 		_pCnn->enqueue("bgr", matBgr);
@@ -239,7 +277,8 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 		}
 
 		matPha = _matResult[0].pha;
-		compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
+		//compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
+		compose_op(matFrame, matBgrReplace, matPha, matCom, out_shape);
 
 		FrameData frameCom;
 		ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
@@ -311,6 +350,7 @@ void MatterBackgroundV2Impl::compose(cv::Mat &src, cv::Mat &replace, cv::Mat &al
 		}
 	}
 }
+
 
 /****************************************Asynchronous Process*******************************************************/
 void MatterBackgroundV2Impl::setStrategy_async(bool bAuto, int interval, const Shape &input_shape, const Shape &out_shape)

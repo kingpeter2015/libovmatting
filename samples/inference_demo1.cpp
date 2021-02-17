@@ -176,8 +176,9 @@ void Inference_demo1(int argc, char* argv[])
         params.path_to_model = "./share/modnet.xml";
         params.path_to_bin = "./share/modnet.bin";
 #endif
-        params.input_shape.width = 512;
-        params.input_shape.height = 512;
+        //params.input_shape.width = 512;
+        //params.input_shape.height = 512;
+        params.input_shape.height = params.input_shape.width;
     }
     MatterChannel* pChan = MatterChannel::create(params);
     if (!pChan)

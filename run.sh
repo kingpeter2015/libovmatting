@@ -13,8 +13,8 @@ export LD_LIBRARY_PATH=./:./build/:/opt/intel/openvino_2021/inference_engine/lib
          -dbgr ./share/replace.jpg \
 		 -in_width 320 \
 		 -in_height 180 \
-		 -method 1 \
-		 -interval 5 \
+		 -method 0 \
+		 -interval 0 \
          -cpu_thread 0 \
          -cpu_stream 1 \
-         -motion_f 1.0
+         -motion_f 2.0
