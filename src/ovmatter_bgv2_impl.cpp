@@ -220,8 +220,6 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 	}
 	_prevFrame = matFrame.clone();
 
-	
-
 	//3. Infer result
 	{
 		_pCnn->enqueue("src", matFrame);
@@ -354,7 +352,7 @@ int MatterBackgroundV2Impl::process_async(FrameData &frame, FrameData &frameCom,
 			m_nInterval = 1;
 		}
 		l_frame_count = l_frame_count % m_nInterval;
-		if (l_frame_count == 0)
+		if (l_frame_count != 0)
 		{
 			cv::Mat matFrame;
 			Utils_Ov::frameData2Mat(frame, matFrame);
