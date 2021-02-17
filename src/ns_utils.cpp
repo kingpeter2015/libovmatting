@@ -15,10 +15,12 @@ MatterBencher::~MatterBencher()
 
 void MatterBencher::Start()
 {
+#if 0
     if (_started)
     {
         return;
     }
+#endif
     _elapse = 0;
     _start = std::chrono::high_resolution_clock::now();
     _started = true;
@@ -196,7 +198,7 @@ inline const float av_clipf(float a, float amin, float amax)
 
 double Utils_Ov::getSceneScore(cv::Mat prev_frame, cv::Mat frame, double& prev_mafd)
 {
-    double ret = 0.0f;
+    double ret = 10000.0f;
     int w0 = prev_frame.cols;
     int h0 = prev_frame.rows;
     int w1 = frame.cols;

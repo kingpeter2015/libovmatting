@@ -207,7 +207,7 @@ void Inference_demo1(int argc, char* argv[])
     std::map<std::string, ovlib::matter::FrameData> output;
     ovlib::matter::FrameData frame_com, frame_pha;
     ovlib::MatterBencher timercounter;
-    timercounter.Start();
+    //timercounter.Start();
     double lElapse = 0;
 
     FrameData frame_bgr;
@@ -237,7 +237,7 @@ void Inference_demo1(int argc, char* argv[])
             FrameData frame_main;
             ovlib::Utils_Ov::mat2FrameData(frame, frame_main);
         
-
+            timercounter.Start();
             pChan->process(frame_main, frame_bgr, frame_bgr_replace, out_shape, &output);
             lElapse += timercounter.Elapse();
             std::cout << "Elapse:" << lElapse / 1000.0 << " S" << std::endl;

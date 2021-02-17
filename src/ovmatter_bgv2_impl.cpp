@@ -156,98 +156,94 @@ int MatterBackgroundV2Impl::doWork_sync_V2(cv::Mat &frame, cv::Mat &bgr, cv::Mat
 /// <returns></returns>
 int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameData &bgrReplace, const ovlib::matter::Shape &shape, std::map<std::string, FrameData> *pResults)
 {
-	int ret = -1;
-	if (frame.frame == 0 || bgr.frame == 0 || bgrReplace.frame == 0 || frame.width == 0 || frame.height == 0 || bgr.width == 0 || bgr.height == 0 || bgrReplace.width == 0 || bgrReplace.height == 0)
-	{
-		return ret;
-	}
+    int ret = -1;
+    if (frame.frame == 0 || bgr.frame == 0 || bgrReplace.frame == 0 || frame.width == 0 || frame.height == 0 || bgr.width == 0 || bgr.height == 0 || bgrReplace.width == 0 || bgrReplace.height == 0)
+    {
+        return ret;
+    }
 
-	if (!pResults)
-	{
-		return -1;
-	}
-	static int l_frame_count_sync = 0;
-	l_frame_count_sync++;
+    if (!pResults)
+    {
+        return -1;
+    }
+    static int l_frame_count_sync = 0;
+    l_frame_count_sync++;
 
-	cv::Mat matFrame;
-	ovlib::Utils_Ov::frameData2Mat(frame, matFrame);
-	cv::Mat matBgr;
-	ovlib::Utils_Ov::frameData2Mat(bgr, matBgr);
-	cv::Mat matBgrReplace;
-	ovlib::Utils_Ov::frameData2Mat(bgrReplace, matBgrReplace);
-	cv::Size out_shape(shape.width, shape.height);
-	cv::Mat matCom;
-	cv::Mat matPha;
+    cv::Mat matFrame;
+    ovlib::Utils_Ov::frameData2Mat(frame, matFrame);
+    cv::Mat matBgr;
+    ovlib::Utils_Ov::frameData2Mat(bgr, matBgr);
+    cv::Mat matBgrReplace;
+    ovlib::Utils_Ov::frameData2Mat(bgrReplace, matBgrReplace);
+    cv::Size out_shape(shape.width, shape.height);
+    cv::Mat matCom;
+    cv::Mat matPha;
 
-	//1 skip Frame intervally 
-	if (m_nInterval <= 0)
-	{
-		m_nInterval = 1;
-	}
-	l_frame_count_sync = l_frame_count_sync % m_nInterval;
-	bool bExist = (_preResult.find("pha") != _preResult.end());
-	if (l_frame_count_sync != 0 && bExist)
-	{
-		matPha = _preResult["pha"];
-		compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
-		FrameData frameCom;
-		ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
-		FrameData frameAlpha;
-		ovlib::Utils_Ov::mat2FrameData(matPha, frameAlpha);
-		(*pResults)["com"] = frameCom;
-		(*pResults)["pha"] = frameAlpha;
-		return 0;
-	}
+    //1 skip Frame intervally 
+    if (m_nInterval <= 0)
+    {
+        m_nInterval = 1;
+    }
+    l_frame_count_sync = l_frame_count_sync % m_nInterval;
+    bool bExist = (_preResult.find("pha") != _preResult.end());
+    bool bInfer = false;
+    bool bMotionDetected = false;
 
-	//2.check if frame changes
-	if (m_fMotionThreshold > 0.0f)
-	{		
-		double dblDiff = Utils_Ov::getSceneScore(_prevFrame, matFrame, m_preDiff);
 
-		bool bExist = (_preResult.find("pha") != _preResult.end());
-		if (dblDiff < m_fMotionThreshold && bExist)
-		{
-			matPha = _preResult["pha"];
-			compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
-			FrameData frameCom;
-			ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
-			FrameData frameAlpha;
-			ovlib::Utils_Ov::mat2FrameData(matPha, frameAlpha);
-			(*pResults)["com"] = frameCom;
-			(*pResults)["pha"] = frameAlpha;
-			return 0;
-		}
-	}
-	_prevFrame = matFrame.clone();
+    double dblDiff = Utils_Ov::getSceneScore(_prevFrame, matFrame, m_preDiff);
+    if (m_fMotionThreshold > 0.0f && dblDiff > m_fMotionThreshold)
+        bMotionDetected = true;
 
-	//3. Infer result
-	{
-		_pCnn->enqueue("src", matFrame);
-		_pCnn->enqueue("bgr", matBgr);
-		_pCnn->submitRequest();
-		_pCnn->wait();
-		_matResult = _pCnn->fetchResults();
-		m_nInferCount++;
-		if (_matResult.size() <= 0)
-		{
-			return -1;
-		}
+    if (!bExist)
+        bInfer = true;
 
-		matPha = _matResult[0].pha;
-		compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
+    // Defer only on each interval
+    if (!bInfer && l_frame_count_sync == 0)
+        bInfer = true;
 
-		FrameData frameCom;
-		ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
-		FrameData frameAlpha;
-		ovlib::Utils_Ov::mat2FrameData(_matResult[0].pha, frameAlpha);
-		(*pResults)["com"] = frameCom;
-		(*pResults)["pha"] = frameAlpha;
+    // Defer only when motion detected
+    if (!bInfer && bMotionDetected)
+        bInfer = true;
 
-		_preResult["com"] = matCom;
-		_preResult["pha"] = _matResult[0].pha;
-	}
+    // Use last infer result
+    if (!bInfer) {
+        matPha = _preResult["pha"];
+        compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
+        FrameData frameCom;
+        ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
+        FrameData frameAlpha;
+        ovlib::Utils_Ov::mat2FrameData(matPha, frameAlpha);
+        (*pResults)["com"] = frameCom;
+        (*pResults)["pha"] = frameAlpha;
+        return 0;
+    }
 
-	return 0;
+    //3. Infer result
+    _pCnn->enqueue("src", matFrame);
+    _pCnn->enqueue("bgr", matBgr);
+    _pCnn->submitRequest();
+    _pCnn->wait();
+    _matResult = _pCnn->fetchResults();
+    m_nInferCount++;
+    if (_matResult.size() <= 0)
+    {
+        return -1;
+    }
+    matPha = _matResult[0].pha;
+    compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
+
+    FrameData frameCom;
+    ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
+    FrameData frameAlpha;
+    ovlib::Utils_Ov::mat2FrameData(_matResult[0].pha, frameAlpha);
+    (*pResults)["com"] = frameCom;
+    (*pResults)["pha"] = frameAlpha;
+    _preResult["com"] = matCom;
+    _preResult["pha"] = _matResult[0].pha;
+
+    _prevFrame = matFrame.clone();
+
+    return 0;
 }
 
 void MatterBackgroundV2Impl::compose(cv::Mat &src, cv::Mat &replace, cv::Mat &alpha, cv::Mat &com, cv::Size &out_shape)

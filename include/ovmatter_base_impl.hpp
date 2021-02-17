@@ -47,7 +47,7 @@ namespace ovlib
 			int m_nInterval;
 			float m_fMotionThreshold;
 			int m_nInferCount = 0;
-			double m_preDiff;
+			double m_preDiff = 0.0;
 		};
 
 		typedef MatterBaseImpl* (*NewInstancePt)();
