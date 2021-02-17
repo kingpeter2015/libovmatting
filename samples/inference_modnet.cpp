@@ -24,8 +24,8 @@ void Inference_Modnet()
 #if (_MSC_VER)
 	std::string model = ".\\share\\modnet.xml";
 	std::string bin = ".\\share\\modnet.bin";
-	std::string src = ".\\share\\src.mp4";
-	std::string bgr = ".\\share\\src.png";
+	std::string src = ".\\share\\bxg1.mp4";
+	std::string bgr = ".\\share\\bxg1.png";
 	std::string bgr2 = ".\\share\\replace.jpg";
 #else
 	std::string model = "../share/modnet.xml";
