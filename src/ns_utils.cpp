@@ -15,10 +15,12 @@ MatterBencher::~MatterBencher()
 
 void MatterBencher::Start()
 {
+#if 0
     if (_started)
     {
         return;
     }
+#endif
     _elapse = 0;
     _start = std::chrono::high_resolution_clock::now();
     _started = true;
