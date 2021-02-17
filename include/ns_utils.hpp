@@ -170,6 +170,7 @@ namespace ovlib
 
         static void sleep(long milliseconds);
         static double getSceneScore(cv::Mat prev_frame, cv::Mat frame, double& prev_mafd);
+        static double getSceneScore_V2(cv::Mat prev_frame, cv::Mat frame, double& prev_mafd);
 
         static std::string getRealPath(std::string relPath);
     };

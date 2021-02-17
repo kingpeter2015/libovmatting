@@ -233,6 +233,7 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 		ovlib::Utils_Ov::mat2FrameData(matPha, frameAlpha);
 		(*pResults)["com"] = frameCom;
 		(*pResults)["pha"] = frameAlpha;
+		_prevFrame = matFrame.clone();
 		return 0;
 	}
 
@@ -241,6 +242,7 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 	{		
 		
 		double dblDiff = Utils_Ov::getSceneScore(_prevFrame, matFrame, m_preDiff);
+		//double dblDiff = Utils_Ov::getSceneScore_V2(_prevFrame, matFrame, m_preDiff);
 
 		bool bExist = (_preResult.find("pha") != _preResult.end());
 		if (dblDiff < m_fMotionThreshold && bExist && l_no_infer_count < m_nForceInferLimit)
@@ -248,14 +250,16 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 			//ovlib::TimerCounter estimate("compose_op()...");
 			l_no_infer_count++;
 			matPha = _preResult["pha"];
+			matCom = _preResult["com"];
 			//compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
-			compose_op(matFrame, matBgrReplace, matPha, matCom, out_shape);
+			//compose_op(matFrame, matBgrReplace, matPha, matCom, out_shape);
 			FrameData frameCom;
 			ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
 			FrameData frameAlpha;
 			ovlib::Utils_Ov::mat2FrameData(matPha, frameAlpha);
 			(*pResults)["com"] = frameCom;
 			(*pResults)["pha"] = frameAlpha;
+			_prevFrame = matFrame.clone();
 			return 0;
 		}
 	}
@@ -277,8 +281,8 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 		}
 
 		matPha = _matResult[0].pha;
-		//compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
-		compose_op(matFrame, matBgrReplace, matPha, matCom, out_shape);
+		compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
+		//compose_op(matFrame, matBgrReplace, matPha, matCom, out_shape);
 
 		FrameData frameCom;
 		ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);

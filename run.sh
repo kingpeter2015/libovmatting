@@ -17,4 +17,4 @@ export LD_LIBRARY_PATH=./:./build/:/opt/intel/openvino_2021/inference_engine/lib
 		 -interval 0 \
          -cpu_thread 0 \
          -cpu_stream 1 \
-         -motion_f 2.0
+         -motion_f 1.0
