@@ -259,7 +259,10 @@ void Inference_demo1(int argc, char* argv[])
     delete[] frame_bgr_replace.frame;
 
     int nInfer = pChan->getInferCount();
+    double dblInfer = pChan->getAttributeValue("InferCount");
     std::cout << "Infer Count:" << nInfer << std::endl; 
+    std::cout << "dblInfer Count:" << dblInfer << std::endl; 
+
 
     std::cout << "Speed:" << framecnt * 1000 / (lElapse) << " FPS" << std::endl; 
 

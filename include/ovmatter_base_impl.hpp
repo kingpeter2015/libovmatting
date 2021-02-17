@@ -40,14 +40,17 @@ namespace ovlib
 			virtual ~MatterBaseImpl() {};
 			virtual bool init(const MatterParams& params) = 0;
 			virtual int getInferCount(){ return m_nInferCount; }
+			virtual double getAttributeValue(std::string attName);
+			virtual MatterChannel* setAttributeValue(std::string attrName, double dblValue);
 
 			MatterParams _params;
 		
 		protected:
 			int m_nInterval;
-			float m_fMotionThreshold;
+			float m_fMotionThreshold = -1.0f;
 			int m_nInferCount = 0;
-			double m_preDiff;
+			double m_preDiff = 0.0;
+			int m_nForceInferLimit = 30;
 		};
 
 		typedef MatterBaseImpl* (*NewInstancePt)();

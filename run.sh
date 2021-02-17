@@ -11,10 +11,10 @@ export LD_LIBRARY_PATH=./:./build/:/opt/intel/openvino_2021/inference_engine/lib
          -sbgr ./share/src.png \
          -dst ./share/dst.mp4 \
          -dbgr ./share/replace.jpg \
-		 -in_width 512 \
-		 -in_height 512 \
-		 -method 1 \
-		 -interval 1 \
+		 -in_width 320 \
+		 -in_height 180 \
+		 -method 0 \
+		 -interval 3 \
          -cpu_thread 0 \
          -cpu_stream 1 \
-         -motion_f 0.5
+         -motion_f -1.0

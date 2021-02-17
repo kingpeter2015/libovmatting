@@ -167,6 +167,7 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 		return -1;
 	}
 	static int l_frame_count_sync = 0;
+	static int l_no_infer_count = 0;
 	l_frame_count_sync++;
 
 	cv::Mat matFrame;
@@ -186,10 +187,12 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 	}
 	l_frame_count_sync = l_frame_count_sync % m_nInterval;
 	bool bExist = (_preResult.find("pha") != _preResult.end());
-	if (l_frame_count_sync != 0 && bExist)
+	if (l_frame_count_sync != 0 && bExist && l_no_infer_count < m_nForceInferLimit)
 	{
+		l_no_infer_count++;
 		matPha = _preResult["pha"];
-		compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
+		matCom = _preResult["com"];
+		//compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
 		FrameData frameCom;
 		ovlib::Utils_Ov::mat2FrameData(matCom, frameCom);
 		FrameData frameAlpha;
@@ -205,8 +208,9 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 		double dblDiff = Utils_Ov::getSceneScore(_prevFrame, matFrame, m_preDiff);
 
 		bool bExist = (_preResult.find("pha") != _preResult.end());
-		if (dblDiff < m_fMotionThreshold && bExist)
+		if (dblDiff < m_fMotionThreshold && bExist && l_no_infer_count < m_nForceInferLimit)
 		{
+			l_no_infer_count++;
 			matPha = _preResult["pha"];
 			compose(matFrame, matBgrReplace, matPha, matCom, out_shape);
 			FrameData frameCom;
@@ -222,6 +226,7 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
 
 	//3. Infer result
 	{
+		l_no_infer_count = 0;
 		_pCnn->enqueue("src", matFrame);
 		_pCnn->enqueue("bgr", matBgr);
 		_pCnn->submitRequest();
