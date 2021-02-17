@@ -193,7 +193,7 @@ void Inference_demo1(int argc, char* argv[])
     out_shape.width = capture0.get(cv::CAP_PROP_FRAME_WIDTH);
     out_shape.height = capture0.get(cv::CAP_PROP_FRAME_HEIGHT);
     cv::VideoWriter writer;
-    bool bRet = writer.open(dst, cv::VideoWriter::fourcc('X', '2', '6', '4'), 60, cv::Size(out_shape.width, out_shape.height));
+    bool bRet = writer.open(dst, cv::VideoWriter::fourcc('X', '2', '6', '4'), 30, cv::Size(out_shape.width, out_shape.height));
     if (!bRet)
     {
         std::cout << "cv::VideoWriter Initializes failed!" << std::endl;

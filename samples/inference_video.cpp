@@ -24,8 +24,8 @@ void Inference_Video()
 #if (_MSC_VER)
     std::string model = ".\\share\\pytorch_mobilenetv2.xml";
     std::string bin = ".\\share\\pytorch_mobilenetv2.bin";
-    std::string src = ".\\share\\bxg1.mp4";
-    std::string bgr = ".\\share\\bxg1.png";
+    std::string src = ".\\share\\src.mp4";
+    std::string bgr = ".\\share\\src.png";
     std::string bgr2 = ".\\share\\replace.jpg";
 #else
     std::string model = "../share/pytorch_mobilenetv2.xml";
