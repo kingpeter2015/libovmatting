@@ -77,7 +77,7 @@ bool MatterModnetImpl::init(const MatterParams& param)
 		config.interval = param.interval;
 		config.motion_threshold = param.threshold_motion;
 		m_nInterval = param.interval;
-		m_fMotionThreshold = param.threshold_motion / 1000.0f;
+		m_fMotionThreshold = param.threshold_motion;
 		_pCnn.reset(new CNN_Modnet(config));
 
 		start(); //�����߳�

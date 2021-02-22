@@ -87,7 +87,7 @@ bool MatterBackgroundV2Impl::init(const MatterParams &param)
 		config.interval = param.interval;
 		config.motion_threshold = param.threshold_motion;
 		m_nInterval = param.interval;
-		m_fMotionThreshold = param.threshold_motion / 1000.0f;
+		m_fMotionThreshold = param.threshold_motion;
 		_pCnn.reset(new CNN_Background_V2(config));
 
 		start(); //�����߳�
@@ -184,21 +184,32 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
     {
         m_nInterval = 1;
     }
-    l_frame_count_sync = l_frame_count_sync % m_nInterval;
+   
     bool bExist = (_preResult.find("pha") != _preResult.end());
     bool bInfer = false;
     bool bMotionDetected = false;
+    static double minDiff=1.0;
+    static double maxDiff=0.0;
 
+    double dblDiff;
+    if (l_frame_count_sync > 1 && m_fMotionThreshold > 0.0f) {
+	dblDiff = Utils_Ov::getSceneScore(_prevFrame, matFrame, m_preDiff);
 
-    double dblDiff = Utils_Ov::getSceneScore(_prevFrame, matFrame, m_preDiff);
-    if (m_fMotionThreshold > 0.0f && dblDiff > m_fMotionThreshold)
-        bMotionDetected = true;
+	if (dblDiff < minDiff)
+	    minDiff = dblDiff;
+	if (dblDiff > maxDiff)
+	    maxDiff = dblDiff;
+
+	std::cout << "Diff: " << dblDiff << " max: " << maxDiff << " min: " << minDiff << std::endl;
+	if (dblDiff > m_fMotionThreshold)
+	    bMotionDetected = true;
+    }
 
     if (!bExist)
         bInfer = true;
 
     // Defer only on each interval
-    if (!bInfer && l_frame_count_sync == 0)
+    if (!bInfer &&  (l_frame_count_sync% m_nInterval) == 0)
         bInfer = true;
 
     // Defer only when motion detected
@@ -238,7 +249,7 @@ int MatterBackgroundV2Impl::doWork_sync(FrameData &frame, FrameData &bgr, FrameD
     ovlib::Utils_Ov::mat2FrameData(_matResult[0].pha, frameAlpha);
     (*pResults)["com"] = frameCom;
     (*pResults)["pha"] = frameAlpha;
-    _preResult["com"] = matCom;
+    //_preResult["com"] = matCom;
     _preResult["pha"] = _matResult[0].pha;
 
     _prevFrame = matFrame.clone();

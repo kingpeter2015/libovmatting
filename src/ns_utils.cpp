@@ -221,9 +221,11 @@ double Utils_Ov::getSceneScore(cv::Mat prev_frame, cv::Mat frame, double& prev_m
             }
         }
         mafd = nb_sad ? (float)sad / nb_sad : 0;
-        diff = fabs(mafd - prev_mafd);
-        ret = av_clipf(OVMIN(mafd, diff) / 100., 0, 1);
-        prev_mafd = mafd;
+        //diff = fabs(mafd - prev_mafd);
+        //ret = av_clipf(OVMIN(mafd, diff) / 100., 0, 1);
+        //ret = OVMIN(mafd, diff);
+        //prev_mafd = mafd;
+        ret = mafd;
     }
 
     return ret;
