@@ -51,8 +51,7 @@ build and run in the Visual Studio IDE <br>
 * share: contains model files which are used by openvino inference engine. <br/>
 * src: contains source code files <br/>
 
-main.cpp
-:    for demo to start <br/>
+main.cpp:  startup point of demos <br/>
 
 ### 5.2 Please Attention !!!
 
