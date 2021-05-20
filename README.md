@@ -40,7 +40,7 @@ Install Visual Studio 2019 <br>
 open Win64\ovmatting.sln <br>
 build and run in the Visual Studio IDE <br>
 
-## 5 About code
+## 5 About Source Code
 
 ### 5.1 Directory Structure
 
