@@ -52,18 +52,18 @@ share: contains model files which are used by openvino inference engine.
 src: contains source code files
 main.cpp: for demo to start
 
-### 5.2 attention !!!
+### 5.2 Please Attention !!!
 
-* include/ovmatter.h is one only sdk header file which exposes api to applications.
-* libovmatting library only supports two matting method: METHOD_BACKGROUND_MATTING_V2 and METHOD_MODNET. It is defined in include/ovmatter.h
-*  METHOD_BACKGROUND_MATTING_V2 method uses pytorch_mobilenetv2.bin/pytorch_mobilenetv2.xml model.
-*  METHOD_MODNET method uses modnet.bin/modnet.xml model
+* 'include/ovmatter.h' is one only sdk header file which exposes api to applications.
+* libovmatting library only supports two matting method: METHOD_BACKGROUND_MATTING_V2 and METHOD_MODNET. They are defined in include/ovmatter.h
+*  METHOD_BACKGROUND_MATTING_V2 method uses cnn model defined 'pytorch_mobilenetv2.bin/pytorch_mobilenetv2.xml'.
+*  METHOD_MODNET method uses cnn model defined in 'modnet.bin/modnet.xml' 
 
 if you want to use your own model, you can do following steps:
 * Add a enum item in enum OV_MATTER_API MattingMethod which is defined in include/ovmatter.h
 * declare and implement a new ovmatter class, and inherit 'MatterBaseImpl', then write a new cnn that uses your own models
 
-that's all!
+That's all, have fun !
 
 ## 6 Reference
 OpenVINO https://software.intel.com/content/www/us/en/develop/tools/openvino-toolkit.html <br>
