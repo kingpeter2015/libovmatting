@@ -44,7 +44,7 @@ build and run in the Visual Studio IDE <br>
 
 ### 5.1 Directory Structure
 
-* Win64: Windows Solution and project <br/>
+* Win64: Windows Solution and projects <br/>
 * include: contains header files. **ovmatter.h is api header file** <br/>
 * libovmatting: CMakefiles for compile libovmatting.so under linux <br/>
 * samples: four samples using libovmatting library <br/>
