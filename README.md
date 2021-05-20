@@ -44,13 +44,26 @@ build and run in the Visual Studio IDE <br>
 
 ### 5.1 Directory Structure
 
-Win64: Windows Solution and project
-include: contains header files. **ovmatter.h is api header file**
-libovmatting: CMakefiles for compile libovmatting.so under linux
-samples: four samples using libovmatting library
-share: contains model files which are used by openvino inference engine.
-src: contains source code files
-main.cpp: for demo to start
+Win64
+:    Windows Solution and project <br/>
+
+include
+:    contains header files. **ovmatter.h is api header file** <br/>
+
+libovmatting
+:    CMakefiles for compile libovmatting.so under linux <br/>
+
+samples
+:    four samples using libovmatting library <br/>
+
+share
+:    contains model files which are used by openvino inference engine. <br/>
+
+src
+:    contains source code files <br/>
+
+main.cpp
+:    for demo to start <br/>
 
 ### 5.2 Please Attention !!!
 
